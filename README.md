@@ -38,8 +38,24 @@ uv run ruff format --check .
 Copy `.env.example` to `.env` when changing local settings. The optional
 `AI_AGENT_LLM_BASE_URL`, `AI_AGENT_LLM_MODEL`, and
 `AI_AGENT_LLM_TIMEOUT_SECONDS` settings configure a local llama.cpp server's
-OpenAI-compatible `/v1/chat/completions` endpoint. The model and server must be
+OpenAI-compatible `/v1/chat/completions` endpoint. The default model ID matches
+the current local server; if yours differs, use the exact ID from `/v1/models`.
+`AI_AGENT_LLM_CONNECT_TIMEOUT_SECONDS`, `AI_AGENT_LLM_MAX_TOKENS`, and
+`AI_AGENT_LLM_TEMPERATURE` control the request. The model and server must be
 provided separately. `AI_AGENT_LOG_LEVEL` controls application JSON logs.
+
+To test real inference through the one-node LangGraph probe, start llama-server
+separately and explicitly opt in:
+
+```sh
+uv run python scripts/smoke_llm.py
+AI_AGENT_RUN_LIVE_LLM=1 uv run pytest tests/integration/test_llm_live.py -q
+```
+
+The script first checks `/v1/models`, then prints the actual LangGraph response
+to a sample incident description. It does not fetch logs or metrics. The live
+test is skipped by ordinary `uv run pytest`. Neither creates an HTTP API
+endpoint or executes tools. The probe is not an incident investigation.
 
 ## Current layout
 
@@ -50,13 +66,17 @@ src/ai_agent/
   core/config.py              Environment settings
   core/logging.py             JSON log formatter and request context
   agent/state.py              Minimal graph state
-  agent/graph.py              Compiled, no-op LangGraph skeleton
-  llm/providers/llama_cpp.py  On-demand llama.cpp HTTP adapter
+  agent/graph.py              Investigation skeleton and one-node LLM probe
+  application/services/       Invokes the probe without an HTTP contract
+  llm/types.py                Typed messages, completion and provider boundary
+  llm/providers/llama_cpp.py  On-demand async llama.cpp HTTP adapter
 tests/unit/                  Configuration, graph, and LLM adapter tests
-tests/integration/           HTTP health smoke test
+tests/integration/           HTTP health and opt-in live LLM checks
+scripts/smoke_llm.py          Explicit live model check through LangGraph
 ```
 
-The graph intentionally has no diagnostic nodes or tool calls. Future
+The investigation graph intentionally has no diagnostic nodes or tool calls.
+The separate LLM probe graph performs one real text generation. Future
 investigation nodes belong under `agent/nodes`, with orchestration in
 `application` and contract-owned data types in `domain`. MCP Streamable HTTP
 client and potential server implementations will live under separate `mcp/client`

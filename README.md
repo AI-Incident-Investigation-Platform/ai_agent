@@ -1,33 +1,36 @@
 # AI Incident Investigator — AI Backend
 
-Python 3.14 backend scaffold for AI investigations. The main Backend owns users,
-projects, and incidents; this service will run investigations through one
-LangGraph agent. Project API and diagnostic tool contracts are available as
-v0.2 drafts, not approved production interfaces.
+Каркас самостоятельного AI Backend на Python 3.14. Основной Backend владеет
+пользователями, проектами и инцидентами; этот сервис в дальнейшем будет выполнять
+расследования с одним агентом на LangGraph. Контракты API и диагностических
+инструментов пока имеют статус **v0.2-draft**, а не утверждённого production API.
 
-## Project context
+## Документация проекта
 
-Start with [the documentation map](docs/00_START_HERE.md) and
-[AI scope and architecture](docs/02_AI_SCOPE_AND_ARCHITECTURE.md).
-[Decisions and conflicts](docs/04_DECISIONS_AND_CONFLICTS.md) separate current
-team decisions from historical requirements. The [contract pack](docs/contracts/00_README.md)
-contains draft JSON Schemas, OpenAPI candidates, a gRPC candidate, MCP tool
-catalog, and examples. [Legacy specifications](docs/references/README.md) are
-retained for background; their RabbitMQ requirement for Main Backend ↔ AI is
-superseded. Repository instructions are in [AGENTS.md](AGENTS.md).
+Начните с [карты документации](docs/00_START_HERE.md), затем прочитайте
+[границы AI Backend](docs/02_AI_SCOPE_AND_ARCHITECTURE.md) и
+[принятые решения и конфликты](docs/04_DECISIONS_AND_CONFLICTS.md).
+[План задач](docs/tasks/README.md) задаёт порядок дальнейшей разработки и
+интеграционные барьеры G01–G03. В [пакете контрактов](docs/contracts/00_README.md)
+находятся черновые JSON Schema, варианты OpenAPI и gRPC, каталог MCP-инструментов
+и примеры. [Старые спецификации](docs/references/README.md) сохранены для
+контекста, но требование RabbitMQ между Main Backend и AI Backend отменено.
+Инструкции для работы с репозиторием — в [AGENTS.md](AGENTS.md).
 
-## Run locally
+## Локальный запуск
 
-Install [uv](https://docs.astral.sh/uv/) and Python 3.14, then run:
+Установите [uv](https://docs.astral.sh/uv/) и Python 3.14, затем выполните:
 
 ```sh
 uv sync
 uv run uvicorn ai_agent.api.app:app --host 127.0.0.1 --port 8000
 ```
 
-`GET http://127.0.0.1:8000/health` returns `{"status":"ok"}`. The response
-includes `X-Request-ID`; a valid supplied ID is reused, otherwise one is
-generated. Neither this endpoint nor application startup connects to llama.cpp.
+`GET http://127.0.0.1:8000/health` возвращает `{"status":"ok"}` и заголовок
+`X-Request-ID`. Корректный ID из запроса сохраняется, иначе создаётся новый.
+Для запуска FastAPI и проверки `/health` работающий `llama-server` не нужен.
+
+Проверки качества:
 
 ```sh
 uv run pytest
@@ -35,60 +38,57 @@ uv run ruff check .
 uv run ruff format --check .
 ```
 
-Copy `.env.example` to `.env` when changing local settings. The optional
-`AI_AGENT_LLM_BASE_URL`, `AI_AGENT_LLM_MODEL`, and
-`AI_AGENT_LLM_TIMEOUT_SECONDS` settings configure a local llama.cpp server's
-OpenAI-compatible `/v1/chat/completions` endpoint. The default model ID matches
-the current local server; if yours differs, use the exact ID from `/v1/models`.
-`AI_AGENT_LLM_CONNECT_TIMEOUT_SECONDS`, `AI_AGENT_LLM_MAX_TOKENS`, and
-`AI_AGENT_LLM_TEMPERATURE` control the request. The model and server must be
-provided separately. `AI_AGENT_LOG_LEVEL` controls application JSON logs.
+Для локальной настройки можно скопировать `.env.example` в `.env`.
+`AI_AGENT_LLM_BASE_URL`, `AI_AGENT_LLM_MODEL` и `AI_AGENT_LLM_TIMEOUT_SECONDS`
+задают адрес OpenAI-compatible API llama.cpp, ID модели и общий таймаут запроса.
+Дополнительно доступны `AI_AGENT_LLM_CONNECT_TIMEOUT_SECONDS`,
+`AI_AGENT_LLM_MAX_TOKENS` и `AI_AGENT_LLM_TEMPERATURE`. ID модели должен
+совпадать с ответом вашего сервера на `/v1/models`; модель и `llama-server`
+запускаются отдельно от этого репозитория. `AI_AGENT_LOG_LEVEL` управляет
+уровнем структурированных JSON-логов.
 
-To test real inference through the one-node LangGraph probe, start llama-server
-separately and explicitly opt in:
+## Проверка локальной Qwen
+
+Запустите `llama-server` отдельно. Затем выполните проверку реального ответа
+модели через одноузловой граф LangGraph:
 
 ```sh
 uv run python scripts/smoke_llm.py
 AI_AGENT_RUN_LIVE_LLM=1 uv run pytest tests/integration/test_llm_live.py -q
 ```
 
-The script first checks `/v1/models`, then prints the actual LangGraph response
-to a sample incident description. It does not fetch logs or metrics. The live
-test is skipped by ordinary `uv run pytest`. Neither creates an HTTP API
-endpoint or executes tools. The probe is not an incident investigation.
+Скрипт сначала проверяет `/v1/models`, затем отправляет описание тестового
+инцидента через граф и печатает ответ модели. Он **не** запрашивает реальные логи
+или метрики и не выполняет диагностические инструменты. Live-тест запускается
+только явно; обычный `uv run pytest` пропускает его. Этот граф — проверка
+интеграции LLM, а не полноценное расследование.
 
-## Current layout
+## Текущая структура
 
 ```text
 src/ai_agent/
-  api/app.py                  FastAPI assembly and request correlation
-  api/routes/health.py        Technical health route
-  core/config.py              Environment settings
-  core/logging.py             JSON log formatter and request context
-  agent/state.py              Minimal graph state
-  agent/graph.py              Investigation skeleton and one-node LLM probe
-  application/services/       Invokes the probe without an HTTP contract
-  llm/types.py                Typed messages, completion and provider boundary
-  llm/providers/llama_cpp.py  On-demand async llama.cpp HTTP adapter
-tests/unit/                  Configuration, graph, and LLM adapter tests
-tests/integration/           HTTP health and opt-in live LLM checks
-scripts/smoke_llm.py          Explicit live model check through LangGraph
+  api/app.py                  Сборка FastAPI и корреляция запросов
+  api/routes/health.py        Технический маршрут /health
+  core/config.py              Настройки из переменных окружения
+  core/logging.py             Структурированные JSON-логи
+  agent/state.py              Состояния графов
+  agent/graph.py              Каркас расследования и одноузловой LLM-граф
+  application/services/       Вызов тестового графа вне HTTP-слоя
+  llm/types.py                Типы сообщений, ответа и граница провайдера
+  llm/providers/llama_cpp.py  Асинхронный HTTP-адаптер llama.cpp
+tests/unit/                  Тесты настроек, графа и адаптера с fake/mock
+tests/integration/           Проверка /health и отдельный live-тест LLM
+scripts/smoke_llm.py          Явная проверка модели через LangGraph
 ```
 
-The investigation graph intentionally has no diagnostic nodes or tool calls.
-The separate LLM probe graph performs one real text generation. Future
-investigation nodes belong under `agent/nodes`, with orchestration in
-`application` and contract-owned data types in `domain`. MCP Streamable HTTP
-client and potential server implementations will live under separate `mcp/client`
-and `mcp/server` packages once tool contracts are defined. The MCP server is a
-separate protocol surface from the internal FastAPI API. PostgreSQL checkpoint
-storage will be wired at graph compilation through `persistence/checkpoints`
-after persistence and recovery contracts are agreed. No database schema is
-defined here.
+В графе расследования пока нет диагностических узлов и вызовов инструментов.
+Одноузловой LLM-граф выполняет только генерацию текста. После согласования
+контрактов узлы расследования будут размещены в `agent/nodes`, а оркестрация —
+в `application`. MCP Streamable HTTP Client и возможный MCP Server относятся к
+отдельным протокольным границам и не являются маршрутами внутреннего FastAPI API.
+PostgreSQL checkpoints и схема хранения пока не реализованы.
 
-Still to decide: REST or gRPC for the Main Backend boundary; MCP Server
-ownership; admission and result recovery policies; service authentication;
-and checkpoint storage ownership. The draft contracts describe candidate
-investigation and tool schemas, but the current code does not implement them.
-The existing `/health` is a technical liveness endpoint, not the draft
-`/internal/v1/health` readiness response.
+Открытые решения: REST или gRPC между Main Backend и AI Backend, владелец MCP
+Server, политика при занятом исполнителе, восстановление результата, межсервисная
+авторизация и владение хранилищем checkpoints. Текущий `/health` — техническая
+проверка доступности, а не черновой `/internal/v1/health` из REST-кандидата.

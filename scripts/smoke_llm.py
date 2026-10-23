@@ -1,6 +1,3 @@
-"""Explicit live smoke check for llama.cpp through the LangGraph probe."""
-
-import asyncio
 import sys
 
 import httpx

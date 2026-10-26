@@ -63,6 +63,19 @@ AI_AGENT_RUN_LIVE_LLM=1 uv run pytest tests/integration/test_llm_live.py -q
 только явно; обычный `uv run pytest` пропускает его. Этот граф — проверка
 интеграции LLM, а не полноценное расследование.
 
+Для отдельной проверки native tool calling на двух фиктивных read-only
+инструментах запустите сервер с `--jinja`, затем:
+
+```sh
+uv run python scripts/smoke_tool_calling.py --repetitions 3
+```
+
+Smoke печатает форму ответа и число успешных структурированных вызовов;
+код выхода `1` означает, что проверка не прошла. Текстовый JSON в
+`message.content` никогда не исполняется как вызов инструмента. Результаты
+для проверенной сборки Qwen/llama.cpp и ограничения приведены в
+[отчёте AI-02](docs/tasks/AI-02_RESULT.md).
+
 ## Текущая структура
 
 ```text
@@ -76,9 +89,11 @@ src/ai_agent/
   application/services/       Вызов тестового графа вне HTTP-слоя
   llm/types.py                Типы сообщений, ответа и граница провайдера
   llm/providers/llama_cpp.py  Асинхронный HTTP-адаптер llama.cpp
+  llm/tool_calling.py         Проверка native tool calls по схемам
 tests/unit/                  Тесты настроек, графа и адаптера с fake/mock
 tests/integration/           Проверка /health и отдельный live-тест LLM
 scripts/smoke_llm.py          Явная проверка модели через LangGraph
+scripts/smoke_tool_calling.py Проверка native tool calling на fake tools
 ```
 
 В графе расследования пока нет диагностических узлов и вызовов инструментов.

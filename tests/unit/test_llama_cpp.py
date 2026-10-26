@@ -12,7 +12,7 @@ from ai_agent.llm.errors import (
     LLMTransportError,
 )
 from ai_agent.llm.providers.llama_cpp import LlamaCppProvider
-from ai_agent.llm.types import ChatMessage
+from ai_agent.llm.types import ChatMessage, ToolCall
 
 
 def test_chat_uses_openai_compatible_endpoint():
@@ -249,4 +249,84 @@ def test_chat_preserves_structured_tool_call_without_executing_it():
     assert completion.tool_calls[0].arguments == {"incident_id": "inc-1"}
     assert json.loads(requests[0].content)["tools"][0]["function"]["name"] == (
         "lookup_status"
+    )
+
+
+def test_chat_serializes_native_tool_exchange():
+    requests = []
+
+    def respond(request):
+        requests.append(json.loads(request.content))
+        return httpx.Response(
+            200, json={"choices": [{"message": {"role": "assistant", "content": "ok"}}]}
+        )
+
+    async def call_chat():
+        async with httpx.AsyncClient(
+            base_url="http://localhost:8080/v1/", transport=httpx.MockTransport(respond)
+        ) as client:
+            return await LlamaCppProvider(Settings(_env_file=None), client).chat(
+                [
+                    ChatMessage("user", "Check logs"),
+                    ChatMessage(
+                        "assistant",
+                        None,
+                        tool_calls=(ToolCall("call_1", "search_logs", {"limit": 3}),),
+                    ),
+                    ChatMessage("tool", '{"status":"ok"}', tool_call_id="call_1"),
+                ]
+            )
+
+    assert asyncio.run(call_chat()).content == "ok"
+    assert requests[0]["messages"] == [
+        {"role": "user", "content": "Check logs"},
+        {
+            "role": "assistant",
+            "content": None,
+            "tool_calls": [
+                {
+                    "id": "call_1",
+                    "type": "function",
+                    "function": {"name": "search_logs", "arguments": '{"limit": 3}'},
+                }
+            ],
+        },
+        {"role": "tool", "tool_call_id": "call_1", "content": '{"status":"ok"}'},
+    ]
+
+
+def test_chat_accepts_object_arguments_from_llama_server():
+    response = httpx.Response(
+        200,
+        json={
+            "choices": [
+                {
+                    "message": {
+                        "role": "assistant",
+                        "tool_calls": [
+                            {
+                                "id": "call_1",
+                                "function": {
+                                    "name": "search_logs",
+                                    "arguments": {"limit": 3},
+                                },
+                            }
+                        ],
+                    }
+                }
+            ]
+        },
+    )
+
+    async def call_chat():
+        async with httpx.AsyncClient(
+            base_url="http://localhost:8080/v1/",
+            transport=httpx.MockTransport(lambda _: response),
+        ) as client:
+            return await LlamaCppProvider(Settings(_env_file=None), client).chat(
+                [ChatMessage("user", "Check logs")]
+            )
+
+    assert asyncio.run(call_chat()).tool_calls == (
+        ToolCall("call_1", "search_logs", {"limit": 3}),
     )

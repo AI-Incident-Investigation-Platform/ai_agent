@@ -4,16 +4,18 @@ from typing import Literal, Protocol
 
 
 @dataclass(frozen=True)
-class ChatMessage:
-    role: Literal["system", "user", "assistant"]
-    content: str
-
-
-@dataclass(frozen=True)
 class ToolCall:
     id: str
     name: str
     arguments: dict[str, object]
+
+
+@dataclass(frozen=True)
+class ChatMessage:
+    role: Literal["system", "user", "assistant", "tool"]
+    content: str | None
+    tool_call_id: str | None = None
+    tool_calls: tuple[ToolCall, ...] = ()
 
 
 @dataclass(frozen=True)

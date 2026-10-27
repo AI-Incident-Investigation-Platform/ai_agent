@@ -20,11 +20,12 @@ from ai_agent.llm.types import ChatCompletion, ChatMessage, ToolCall
 
 class _FunctionCall(BaseModel):
     name: str = Field(min_length=1)
-    arguments: str
+    arguments: str | dict[str, object]
 
 
 class _ResponseToolCall(BaseModel):
     id: str = Field(min_length=1)
+    type: Literal["function"] = "function"
     function: _FunctionCall
 
 
@@ -59,10 +60,7 @@ class LlamaCppProvider:
 
         payload = {
             "model": self._settings.llm_model,
-            "messages": [
-                {"role": message.role, "content": message.content}
-                for message in messages
-            ],
+            "messages": [self._serialize_message(message) for message in messages],
             "temperature": self._settings.llm_temperature,
             "max_tokens": self._settings.llm_max_tokens,
             "stream": False,
@@ -90,6 +88,39 @@ class LlamaCppProvider:
             raise LLMTransportError("Local inference server is unavailable") from exc
 
     @staticmethod
+    def _serialize_message(message: ChatMessage) -> dict[str, object]:
+        if message.role == "tool":
+            if (
+                not message.tool_call_id
+                or message.content is None
+                or message.tool_calls
+            ):
+                raise ValueError("Tool messages require a call ID and content")
+            return {
+                "role": "tool",
+                "tool_call_id": message.tool_call_id,
+                "content": message.content,
+            }
+        if message.tool_call_id or (message.tool_calls and message.role != "assistant"):
+            raise ValueError("Only assistant messages may contain tool calls")
+        if message.content is None and not message.tool_calls:
+            raise ValueError("Messages without tool calls require content")
+        result: dict[str, object] = {"role": message.role, "content": message.content}
+        if message.tool_calls:
+            result["tool_calls"] = [
+                {
+                    "id": call.id,
+                    "type": "function",
+                    "function": {
+                        "name": call.name,
+                        "arguments": json.dumps(call.arguments),
+                    },
+                }
+                for call in message.tool_calls
+            ]
+        return result
+
+    @staticmethod
     async def _request(
         client: httpx.AsyncClient, payload: dict[str, object]
     ) -> ChatCompletion:
@@ -100,7 +131,12 @@ class LlamaCppProvider:
             message = choice.message
             tool_calls = []
             for item in message.tool_calls or []:
-                arguments = json.loads(item.function.arguments)
+                raw_arguments = item.function.arguments
+                arguments = (
+                    json.loads(raw_arguments)
+                    if isinstance(raw_arguments, str)
+                    else raw_arguments
+                )
                 if not isinstance(arguments, dict):
                     raise ValueError("tool arguments must be an object")
                 tool_calls.append(ToolCall(item.id, item.function.name, arguments))

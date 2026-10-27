@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/contracts/email-otp.schema.json",
+  "title": "Email OTP two-stage password login",
+  "description": "For application/json bodies and replies; refer to named $defs in contract tests.",
+  "$defs": {
+    "LoginChallenge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "challenge_id",
+        "delivery_status",
+        "masked_email",
+        "expires_in",
+        "resend_after"
+      ],
+      "properties": {
+        "challenge_id": {
+          "type": "string",
+          "pattern": "^ch_[A-Za-z0-9_-]{20,120}$",
+          "description": "Opaque high-entropy one-time login challenge identifier; not a JWT."
+        },
+        "delivery_status": {
+          "type": "string",
+          "enum": [
+            "queued"
+          ],
+          "description": "Email delivery accepted for asynchronous processing; not proof of delivery."
+        },
+        "masked_email": {
+          "type": "string",
+          "maxLength": 254,
+          "description": "Partially masked verified email, displayed only after valid credentials."
+        },
+        "expires_in": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 300,
+          "description": "Seconds until the currently issued OTP expires."
+        },
+        "resend_after": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3600,
+          "description": "Minimum seconds until resend is allowed."
+        }
+      }
+    },
+    "OtpVerifyRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "challenge_id",
+        "code"
+      ],
+      "properties": {
+        "challenge_id": {
+          "type": "string",
+          "pattern": "^ch_[A-Za-z0-9_-]{20,120}$",
+          "description": "Opaque high-entropy one-time login challenge identifier; not a JWT."
+        },
+        "code": {
+          "type": "string",
+          "pattern": "^[0-9]{6}$",
+          "description": "Six decimal digits. Leading zeros are significant; never parse as integer."
+        }
+      }
+    },
+    "OtpResendRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "challenge_id"
+      ],
+      "properties": {
+        "challenge_id": {
+          "type": "string",
+          "pattern": "^ch_[A-Za-z0-9_-]{20,120}$",
+          "description": "Opaque high-entropy one-time login challenge identifier; not a JWT."
+        }
+      }
+    },
+    "OtpResendResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "challenge_id",
+        "delivery_status",
+        "expires_in",
+        "resend_after"
+      ],
+      "properties": {
+        "challenge_id": {
+          "type": "string",
+          "pattern": "^ch_[A-Za-z0-9_-]{20,120}$",
+          "description": "Opaque high-entropy one-time login challenge identifier; not a JWT."
+        },
+        "delivery_status": {
+          "type": "string",
+          "enum": [
+            "queued"
+          ]
+        },
+        "expires_in": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 300
+        },
+        "resend_after": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3600
+        }
+      }
+    }
+  }
+}

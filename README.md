@@ -63,6 +63,19 @@ AI_AGENT_RUN_LIVE_LLM=1 uv run pytest tests/integration/test_llm_live.py -q
 только явно; обычный `uv run pytest` пропускает его. Этот граф — проверка
 интеграции LLM, а не полноценное расследование.
 
+Для отдельной проверки native tool calling на двух фиктивных read-only
+инструментах запустите сервер с `--jinja`, затем:
+
+```sh
+uv run python scripts/smoke_tool_calling.py --repetitions 3
+```
+
+Smoke печатает форму ответа и число успешных структурированных вызовов;
+код выхода `1` означает, что проверка не прошла. Текстовый JSON в
+`message.content` никогда не исполняется как вызов инструмента. Результаты
+для проверенной сборки Qwen/llama.cpp и ограничения приведены в
+[отчёте AI-02](docs/tasks/AI-02_RESULT.md).
+
 ## Текущая структура
 
 ```text
@@ -73,13 +86,24 @@ src/ai_agent/
   core/logging.py             Структурированные JSON-логи
   agent/state.py              Состояния графов
   agent/graph.py              Каркас расследования и одноузловой LLM-граф
+  domain/models.py            Типы расследования, Evidence, Hypothesis и RCA
+  domain/lifecycle.py         Допустимые переходы статусов и правило Retry
+  application/contracts.py    DTO для v0.2-draft без выбора REST/gRPC
+  application/mappers.py      Преобразование Start DTO ↔ состояние графа
   application/services/       Вызов тестового графа вне HTTP-слоя
   llm/types.py                Типы сообщений, ответа и граница провайдера
   llm/providers/llama_cpp.py  Асинхронный HTTP-адаптер llama.cpp
+  llm/tool_calling.py         Проверка native tool calls по схемам
 tests/unit/                  Тесты настроек, графа и адаптера с fake/mock
+tests/contract/              Проверка DTO по JSON Schema и примерам v0.2-draft
 tests/integration/           Проверка /health и отдельный live-тест LLM
 scripts/smoke_llm.py          Явная проверка модели через LangGraph
+scripts/smoke_tool_calling.py Проверка native tool calling на fake tools
 ```
+
+Новые DTO описывают draft-контракт, но не создают HTTP-маршруты или доставку
+событий. [Результат AI-03](docs/tasks/AI-03_RESULT.md) фиксирует расхождения
+между JSON Schema и дополнительными доменными правилами.
 
 В графе расследования пока нет диагностических узлов и вызовов инструментов.
 Одноузловой LLM-граф выполняет только генерацию текста. После согласования

@@ -1,0 +1,83 @@
+syntax = "proto3";
+package incidentinvestigator.ai.v1;
+
+// REST/gRPC transport decision is OPEN. This .proto is a CANDIDATE only.
+// JSON Schema and OpenAPI encode the business semantics; generated gRPC client
+// will be the source of truth only IF the team explicitly chooses gRPC.
+
+import "google/protobuf/struct.proto";
+
+message Budget {
+  uint32 max_steps = 1;
+  uint32 max_tool_calls = 2;
+  uint32 timeout_seconds = 3;
+}
+message TimeWindow {
+  string from_utc = 1; // RFC3339 UTC
+  string to_utc = 2;
+}
+message StartRequest {
+  string schema_version = 1;
+  string investigation_id = 2;
+  string incident_id = 3;
+  string project_id = 4;
+  string environment_id = 5;
+  repeated string service_ids = 6;
+  string detected_at_utc = 7;
+  TimeWindow window = 8;
+  string alert_summary = 9;
+  Budget budget = 10;
+  uint32 attempt = 11;
+  string parent_investigation_id = 12; // empty if null
+}
+message StartAck { string investigation_id = 1; string status = 2; string accepted_at_utc = 3; }
+message RunID { string investigation_id = 1; }
+message RunStatus {
+ string investigation_id = 1;
+ string incident_id = 2;
+ string status = 3;
+ uint32 current_step = 4;
+ uint32 tool_calls_count = 5;
+ string updated_at_utc = 6;
+}
+message CancelAck {string investigation_id = 1; string status = 2; string requested_at_utc = 3;}
+message ProgressEvent {
+ string schema_version = 1;
+ string event_id = 2;
+ string investigation_id = 3;
+ string incident_id = 4;
+ uint64 sequence = 5;
+ string type = 6;
+ string occurred_at_utc = 7;
+ google.protobuf.Struct data = 8; // event-specific schema validation required
+}
+message Ack {bool accepted = 1; bool deduplicated = 2;}
+message Result {
+ string schema_version = 1;
+ string event_id = 2;
+ string investigation_id = 3;
+ string incident_id = 4;
+ string status = 5;
+ string finished_at_utc = 6;
+ google.protobuf.Struct report = 7;
+ repeated google.protobuf.Struct hypotheses = 8;
+ repeated google.protobuf.Struct evidence = 9;
+ repeated google.protobuf.Struct timeline = 10;
+ string error = 11;
+}
+message ContextRequest { string incident_id = 1; }
+message ContextReply {google.protobuf.Struct incident_context = 1;}
+message HealthRequest {}
+message HealthReply {string status = 1; bool model_ready = 2; uint32 active_investigations = 3; uint32 max_concurrency = 4;}
+service AIInvestigationService {
+ rpc Start(StartRequest) returns (StartAck);
+ rpc GetStatus(RunID) returns (RunStatus);
+ rpc GetResult(RunID) returns (Result);
+ rpc Cancel(RunID) returns (CancelAck);
+ rpc Health(HealthRequest) returns (HealthReply);
+}
+service MainBackendCallbackService {
+ rpc PublishEvent(ProgressEvent) returns (Ack);
+ rpc SubmitResult(Result) returns (Ack);
+ rpc GetIncidentContext(ContextRequest) returns (ContextReply);
+}

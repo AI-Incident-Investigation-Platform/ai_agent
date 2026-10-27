@@ -1,0 +1,36 @@
+{
+  "version": "0.2.0-draft",
+  "generated_at": "2026-10-20",
+  "public_endpoints": 62,
+  "ai_internal_operations": 5,
+  "mcp_tools": 16,
+  "notes": [
+    "No RabbitMQ",
+    "REST/gRPC not yet selected",
+    "MCP server ownership TBD",
+    "Figma B screens mapped",
+    "Login returns OTP challenge and NOT tokens; verify issues JWT"
+  ],
+  "validated_fixtures": [
+    "ai-start.request.json",
+    "ai-event.tool-completed.json",
+    "rca-report.json",
+    "review.request.json",
+    "ai-result.callback.json",
+    "alertmanager.request.json",
+    "ws.subscribe.json",
+    "ws.incident-updated.json",
+    "auth-login.request.json",
+    "auth-login.challenge.response.json",
+    "auth-otp-verify.request.json",
+    "auth-otp-resend.request.json",
+    "auth-otp-resend.response.json"
+  ],
+  "grpc_transport": "candidate only",
+  "auth_otp_required": true,
+  "auth_otp_steps": [
+    "POST /api/v1/auth/login",
+    "POST /api/v1/auth/otp/verify",
+    "POST /api/v1/auth/otp/resend"
+  ]
+}

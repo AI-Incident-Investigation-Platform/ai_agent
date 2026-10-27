@@ -1,0 +1,2259 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "SourceLink": {
+      "type": "object",
+      "properties": {
+        "source_type": {
+          "type": "string",
+          "enum": [
+            "elasticsearch",
+            "prometheus",
+            "tempo",
+            "github",
+            "docker",
+            "deployment",
+            "healthcheck",
+            "manual",
+            "docs_rag",
+            "incident_memory"
+          ]
+        },
+        "source_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "observed_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "null"
+            ]
+          }
+        }
+      },
+      "required": [
+        "source_type"
+      ],
+      "additionalProperties": false
+    },
+    "search_logs_Output": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "error"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SourceLink"
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "timestamp": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "service_name": {
+                "type": "string"
+              },
+              "level": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "trace_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "log_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "timestamp",
+              "service_name",
+              "level",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "error": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": [
+        "status",
+        "summary",
+        "source_refs",
+        "items",
+        "truncated"
+      ],
+      "additionalProperties": false,
+      "$defs": {
+        "SourceLink": {
+          "type": "object",
+          "properties": {
+            "source_type": {
+              "type": "string",
+              "enum": [
+                "elasticsearch",
+                "prometheus",
+                "tempo",
+                "github",
+                "docker",
+                "deployment",
+                "healthcheck",
+                "manual",
+                "docs_rag",
+                "incident_memory"
+              ]
+            },
+            "source_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uri"
+            },
+            "observed_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "metadata": {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          },
+          "required": [
+            "source_type"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "query_prometheus_Output": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "error"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SourceLink"
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "labels": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "points": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "value": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "at",
+                    "value"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "labels",
+              "points"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "error": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": [
+        "status",
+        "summary",
+        "source_refs",
+        "items",
+        "truncated"
+      ],
+      "additionalProperties": false,
+      "$defs": {
+        "SourceLink": {
+          "type": "object",
+          "properties": {
+            "source_type": {
+              "type": "string",
+              "enum": [
+                "elasticsearch",
+                "prometheus",
+                "tempo",
+                "github",
+                "docker",
+                "deployment",
+                "healthcheck",
+                "manual",
+                "docs_rag",
+                "incident_memory"
+              ]
+            },
+            "source_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uri"
+            },
+            "observed_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "metadata": {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          },
+          "required": [
+            "source_type"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "get_trace_Output": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "error"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SourceLink"
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "span_id": {
+                "type": "string"
+              },
+              "parent_span_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "operation": {
+                "type": "string"
+              },
+              "service_name": {
+                "type": "string"
+              },
+              "duration_ms": {
+                "type": "number"
+              },
+              "started_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "span_id",
+              "operation",
+              "service_name",
+              "duration_ms",
+              "started_at"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "error": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": [
+        "status",
+        "summary",
+        "source_refs",
+        "items",
+        "truncated"
+      ],
+      "additionalProperties": false,
+      "$defs": {
+        "SourceLink": {
+          "type": "object",
+          "properties": {
+            "source_type": {
+              "type": "string",
+              "enum": [
+                "elasticsearch",
+                "prometheus",
+                "tempo",
+                "github",
+                "docker",
+                "deployment",
+                "healthcheck",
+                "manual",
+                "docs_rag",
+                "incident_memory"
+              ]
+            },
+            "source_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uri"
+            },
+            "observed_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "metadata": {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          },
+          "required": [
+            "source_type"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "get_service_health_Output": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "error"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SourceLink"
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "service_name": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "healthy",
+                  "degraded",
+                  "critical",
+                  "unknown"
+                ]
+              },
+              "error_rate": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "latency_p95_ms": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "service_name",
+              "status"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "error": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": [
+        "status",
+        "summary",
+        "source_refs",
+        "items",
+        "truncated"
+      ],
+      "additionalProperties": false,
+      "$defs": {
+        "SourceLink": {
+          "type": "object",
+          "properties": {
+            "source_type": {
+              "type": "string",
+              "enum": [
+                "elasticsearch",
+                "prometheus",
+                "tempo",
+                "github",
+                "docker",
+                "deployment",
+                "healthcheck",
+                "manual",
+                "docs_rag",
+                "incident_memory"
+              ]
+            },
+            "source_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uri"
+            },
+            "observed_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "metadata": {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          },
+          "required": [
+            "source_type"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "get_container_status_Output": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "error"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SourceLink"
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "service_name": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string"
+              },
+              "restart_count": {
+                "type": "integer"
+              },
+              "oom_killed": {
+                "type": "boolean"
+              },
+              "memory_usage_bytes": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "service_name",
+              "state",
+              "restart_count",
+              "oom_killed"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "error": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": [
+        "status",
+        "summary",
+        "source_refs",
+        "items",
+        "truncated"
+      ],
+      "additionalProperties": false,
+      "$defs": {
+        "SourceLink": {
+          "type": "object",
+          "properties": {
+            "source_type": {
+              "type": "string",
+              "enum": [
+                "elasticsearch",
+                "prometheus",
+                "tempo",
+                "github",
+                "docker",
+                "deployment",
+                "healthcheck",
+                "manual",
+                "docs_rag",
+                "incident_memory"
+              ]
+            },
+            "source_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uri"
+            },
+            "observed_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "metadata": {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          },
+          "required": [
+            "source_type"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "get_container_events_Output": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "error"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SourceLink"
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "occurred_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "service_name": {
+                "type": "string"
+              },
+              "detail": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "occurred_at",
+              "service_name"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "error": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": [
+        "status",
+        "summary",
+        "source_refs",
+        "items",
+        "truncated"
+      ],
+      "additionalProperties": false,
+      "$defs": {
+        "SourceLink": {
+          "type": "object",
+          "properties": {
+            "source_type": {
+              "type": "string",
+              "enum": [
+                "elasticsearch",
+                "prometheus",
+                "tempo",
+                "github",
+                "docker",
+                "deployment",
+                "healthcheck",
+                "manual",
+                "docs_rag",
+                "incident_memory"
+              ]
+            },
+            "source_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uri"
+            },
+            "observed_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "metadata": {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          },
+          "required": [
+            "source_type"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "get_recent_deployments_Output": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "error"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SourceLink"
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "string"
+              },
+              "commit_sha": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "deployed_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "status": {
+                "type": "string"
+              },
+              "service_name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "version",
+              "deployed_at",
+              "status",
+              "service_name"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "error": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": [
+        "status",
+        "summary",
+        "source_refs",
+        "items",
+        "truncated"
+      ],
+      "additionalProperties": false,
+      "$defs": {
+        "SourceLink": {
+          "type": "object",
+          "properties": {
+            "source_type": {
+              "type": "string",
+              "enum": [
+                "elasticsearch",
+                "prometheus",
+                "tempo",
+                "github",
+                "docker",
+                "deployment",
+                "healthcheck",
+                "manual",
+                "docs_rag",
+                "incident_memory"
+              ]
+            },
+            "source_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uri"
+            },
+            "observed_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "metadata": {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          },
+          "required": [
+            "source_type"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "github_search_code_Output": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "error"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SourceLink"
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "repository": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              },
+              "line": {
+                "type": "integer"
+              },
+              "snippet": {
+                "type": "string"
+              },
+              "ref": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "repository",
+              "path",
+              "snippet"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "error": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": [
+        "status",
+        "summary",
+        "source_refs",
+        "items",
+        "truncated"
+      ],
+      "additionalProperties": false,
+      "$defs": {
+        "SourceLink": {
+          "type": "object",
+          "properties": {
+            "source_type": {
+              "type": "string",
+              "enum": [
+                "elasticsearch",
+                "prometheus",
+                "tempo",
+                "github",
+                "docker",
+                "deployment",
+                "healthcheck",
+                "manual",
+                "docs_rag",
+                "incident_memory"
+              ]
+            },
+            "source_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uri"
+            },
+            "observed_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "metadata": {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          },
+          "required": [
+            "source_type"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "github_get_file_Output": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "error"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SourceLink"
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "repository": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              },
+              "ref": {
+                "type": "string"
+              },
+              "content_excerpt": {
+                "type": "string"
+              },
+              "truncated": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "repository",
+              "path",
+              "ref",
+              "content_excerpt",
+              "truncated"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "error": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": [
+        "status",
+        "summary",
+        "source_refs",
+        "items",
+        "truncated"
+      ],
+      "additionalProperties": false,
+      "$defs": {
+        "SourceLink": {
+          "type": "object",
+          "properties": {
+            "source_type": {
+              "type": "string",
+              "enum": [
+                "elasticsearch",
+                "prometheus",
+                "tempo",
+                "github",
+                "docker",
+                "deployment",
+                "healthcheck",
+                "manual",
+                "docs_rag",
+                "incident_memory"
+              ]
+            },
+            "source_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uri"
+            },
+            "observed_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "metadata": {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          },
+          "required": [
+            "source_type"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "github_get_commit_Output": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "error"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SourceLink"
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "repository": {
+                "type": "string"
+              },
+              "sha": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "author_date": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "changed_paths": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "repository",
+              "sha",
+              "message",
+              "author_date"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "error": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": [
+        "status",
+        "summary",
+        "source_refs",
+        "items",
+        "truncated"
+      ],
+      "additionalProperties": false,
+      "$defs": {
+        "SourceLink": {
+          "type": "object",
+          "properties": {
+            "source_type": {
+              "type": "string",
+              "enum": [
+                "elasticsearch",
+                "prometheus",
+                "tempo",
+                "github",
+                "docker",
+                "deployment",
+                "healthcheck",
+                "manual",
+                "docs_rag",
+                "incident_memory"
+              ]
+            },
+            "source_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uri"
+            },
+            "observed_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "metadata": {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          },
+          "required": [
+            "source_type"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "github_compare_commits_Output": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "error"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SourceLink"
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "repository": {
+                "type": "string"
+              },
+              "base": {
+                "type": "string"
+              },
+              "head": {
+                "type": "string"
+              },
+              "file_path": {
+                "type": "string"
+              },
+              "patch_excerpt": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "repository",
+              "base",
+              "head",
+              "file_path",
+              "patch_excerpt"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "error": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": [
+        "status",
+        "summary",
+        "source_refs",
+        "items",
+        "truncated"
+      ],
+      "additionalProperties": false,
+      "$defs": {
+        "SourceLink": {
+          "type": "object",
+          "properties": {
+            "source_type": {
+              "type": "string",
+              "enum": [
+                "elasticsearch",
+                "prometheus",
+                "tempo",
+                "github",
+                "docker",
+                "deployment",
+                "healthcheck",
+                "manual",
+                "docs_rag",
+                "incident_memory"
+              ]
+            },
+            "source_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uri"
+            },
+            "observed_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "metadata": {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          },
+          "required": [
+            "source_type"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "github_get_blame_Output": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "error"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SourceLink"
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "line_start": {
+                "type": "integer"
+              },
+              "line_end": {
+                "type": "integer"
+              },
+              "commit_sha": {
+                "type": "string"
+              },
+              "author": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "path",
+              "line_start",
+              "line_end",
+              "commit_sha"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "error": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": [
+        "status",
+        "summary",
+        "source_refs",
+        "items",
+        "truncated"
+      ],
+      "additionalProperties": false,
+      "$defs": {
+        "SourceLink": {
+          "type": "object",
+          "properties": {
+            "source_type": {
+              "type": "string",
+              "enum": [
+                "elasticsearch",
+                "prometheus",
+                "tempo",
+                "github",
+                "docker",
+                "deployment",
+                "healthcheck",
+                "manual",
+                "docs_rag",
+                "incident_memory"
+              ]
+            },
+            "source_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uri"
+            },
+            "observed_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "metadata": {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          },
+          "required": [
+            "source_type"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "http_health_check_Output": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "error"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SourceLink"
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "service_name": {
+                "type": "string"
+              },
+              "method": {
+                "type": "string",
+                "enum": [
+                  "GET",
+                  "HEAD"
+                ]
+              },
+              "status_code": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "latency_ms": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "service_name",
+              "method"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "error": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": [
+        "status",
+        "summary",
+        "source_refs",
+        "items",
+        "truncated"
+      ],
+      "additionalProperties": false,
+      "$defs": {
+        "SourceLink": {
+          "type": "object",
+          "properties": {
+            "source_type": {
+              "type": "string",
+              "enum": [
+                "elasticsearch",
+                "prometheus",
+                "tempo",
+                "github",
+                "docker",
+                "deployment",
+                "healthcheck",
+                "manual",
+                "docs_rag",
+                "incident_memory"
+              ]
+            },
+            "source_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uri"
+            },
+            "observed_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "metadata": {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          },
+          "required": [
+            "source_type"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "get_incident_context_Output": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "error"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SourceLink"
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "incident_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "title": {
+                "type": "string"
+              },
+              "alert_summary": {
+                "type": "string"
+              },
+              "affected_services": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "incident_id",
+              "title",
+              "affected_services"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "error": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": [
+        "status",
+        "summary",
+        "source_refs",
+        "items",
+        "truncated"
+      ],
+      "additionalProperties": false,
+      "$defs": {
+        "SourceLink": {
+          "type": "object",
+          "properties": {
+            "source_type": {
+              "type": "string",
+              "enum": [
+                "elasticsearch",
+                "prometheus",
+                "tempo",
+                "github",
+                "docker",
+                "deployment",
+                "healthcheck",
+                "manual",
+                "docs_rag",
+                "incident_memory"
+              ]
+            },
+            "source_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uri"
+            },
+            "observed_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "metadata": {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          },
+          "required": [
+            "source_type"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "search_docs_Output": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "error"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SourceLink"
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "section": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "excerpt": {
+                "type": "string"
+              },
+              "score": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "path",
+              "excerpt"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "error": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": [
+        "status",
+        "summary",
+        "source_refs",
+        "items",
+        "truncated"
+      ],
+      "additionalProperties": false,
+      "$defs": {
+        "SourceLink": {
+          "type": "object",
+          "properties": {
+            "source_type": {
+              "type": "string",
+              "enum": [
+                "elasticsearch",
+                "prometheus",
+                "tempo",
+                "github",
+                "docker",
+                "deployment",
+                "healthcheck",
+                "manual",
+                "docs_rag",
+                "incident_memory"
+              ]
+            },
+            "source_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uri"
+            },
+            "observed_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "metadata": {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          },
+          "required": [
+            "source_type"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "search_similar_incidents_Output": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "error"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SourceLink"
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "incident_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "score": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "incident_id",
+              "summary"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "error": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": [
+        "status",
+        "summary",
+        "source_refs",
+        "items",
+        "truncated"
+      ],
+      "additionalProperties": false,
+      "$defs": {
+        "SourceLink": {
+          "type": "object",
+          "properties": {
+            "source_type": {
+              "type": "string",
+              "enum": [
+                "elasticsearch",
+                "prometheus",
+                "tempo",
+                "github",
+                "docker",
+                "deployment",
+                "healthcheck",
+                "manual",
+                "docs_rag",
+                "incident_memory"
+              ]
+            },
+            "source_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uri"
+            },
+            "observed_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "metadata": {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          },
+          "required": [
+            "source_type"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }
+  }
+}

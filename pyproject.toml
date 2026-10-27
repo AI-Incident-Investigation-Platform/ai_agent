@@ -18,7 +18,7 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["pytest", "ruff"]
+dev = ["jsonschema", "pytest", "rfc3339-validator", "ruff"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ai_agent"]

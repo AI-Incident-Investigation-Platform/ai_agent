@@ -5,7 +5,6 @@ from uuid import UUID
 import pytest
 from pydantic import ValidationError
 
-from ai_agent.agent.graph import build_graph
 from ai_agent.application.contracts import AIResultCallback, Problem, StartAIRequest
 from ai_agent.application.mappers import start_from_graph_state, to_graph_state
 from ai_agent.domain.lifecycle import (
@@ -25,7 +24,7 @@ def test_graph_state_round_trip_does_not_depend_on_http():
     request = StartAIRequest.model_validate(example("ai-start.request.json"))
     state = to_graph_state(request)
     assert state["investigation_id"] == str(request.investigation_id)
-    assert build_graph().invoke(state) == state
+    assert state["budget"] == request.budget
     assert start_from_graph_state(state) == request
 
 

@@ -47,6 +47,29 @@ uv run ruff format --check .
 запускаются отдельно от этого репозитория. `AI_AGENT_LOG_LEVEL` управляет
 уровнем структурированных JSON-логов.
 
+## MCP Client (AI-05)
+
+Для подключения к согласованному MCP endpoint задайте `AI_AGENT_MCP_URL`.
+Опциональный `AI_AGENT_MCP_TOKEN` передаётся как Bearer token; значение хранится
+в окружении/секретах. Таймауты и максимальный размер результата задают
+`AI_AGENT_MCP_CONNECT_TIMEOUT_SECONDS`, `AI_AGENT_MCP_CALL_TIMEOUT_SECONDS` и
+`AI_AGENT_MCP_MAX_RESULT_BYTES`.
+
+`connect_mcp(settings)` открывает и закрывает native Streamable HTTP сессию
+MCP SDK. `discover()` сверяет имена tools с read-only MVP-каталогом, а `call()`
+допускает только обнаруженные разрешённые tools. Native `isError` обрабатывается
+отдельно от application-level `status: error`. Автоматических повторов вызова
+нет. Проверка scope и специфичных аргументов каждого инструмента — AI-06.
+
+Локальная проверка без реальных диагностических источников:
+
+```sh
+uv run pytest tests/unit/test_mcp_client.py tests/integration/test_mcp_streamable_http.py -q
+```
+
+Интеграционный тест поднимает временный MCP Server с fake tools. Подробности —
+в [отчёте AI-05](docs/tasks/AI-05_RESULT.md).
+
 ## Проверка локальной Qwen
 
 Запустите `llama-server` отдельно. Затем выполните проверку реального ответа
@@ -95,6 +118,7 @@ src/ai_agent/
   llm/types.py                Типы сообщений, ответа и граница провайдера
   llm/providers/llama_cpp.py  Асинхронный HTTP-адаптер llama.cpp
   llm/tool_calling.py         Проверка native tool calls по схемам
+  mcp/client.py               Streamable HTTP клиент и typed tool results
 tests/unit/                  Тесты настроек, графа и адаптера с fake/mock
 tests/contract/              Проверка DTO по JSON Schema и примерам v0.2-draft
 tests/integration/           Проверка /health и отдельный live-тест LLM
@@ -120,8 +144,9 @@ scripts/smoke_tool_calling.py Проверка native tool calling на fake too
 по-прежнему только генерирует текст. Подробности — в
 [отчёте AI-04](docs/tasks/AI-04_RESULT.md).
 
-MCP Streamable HTTP Client и возможный MCP Server относятся к отдельным
-протокольным границам и не являются маршрутами внутреннего FastAPI API.
+MCP Client реализован как отдельная транспортная граница и пока не подключён
+к графу расследования. Размещение продуктового MCP Server остаётся открытым
+решением и не является маршрутом внутреннего FastAPI API.
 PostgreSQL checkpoints и схема хранения пока не реализованы.
 
 Открытые решения: REST или gRPC между Main Backend и AI Backend, владелец MCP

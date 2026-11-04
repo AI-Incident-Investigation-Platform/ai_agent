@@ -84,8 +84,9 @@ src/ai_agent/
   api/routes/health.py        Технический маршрут /health
   core/config.py              Настройки из переменных окружения
   core/logging.py             Структурированные JSON-логи
-  agent/state.py              Состояния графов
-  agent/graph.py              Каркас расследования и одноузловой LLM-граф
+  agent/state.py              Состояния графов и наблюдений
+  agent/decisions.py          Типизированные решения и порты fake-адаптеров
+  agent/graph.py              Управляемый цикл расследования и LLM probe
   domain/models.py            Типы расследования, Evidence, Hypothesis и RCA
   domain/lifecycle.py         Допустимые переходы статусов и правило Retry
   application/contracts.py    DTO для v0.2-draft без выбора REST/gRPC
@@ -105,11 +106,22 @@ scripts/smoke_tool_calling.py Проверка native tool calling на fake too
 событий. [Результат AI-03](docs/tasks/AI-03_RESULT.md) фиксирует расхождения
 между JSON Schema и дополнительными доменными правилами.
 
-В графе расследования пока нет диагностических узлов и вызовов инструментов.
-Одноузловой LLM-граф выполняет только генерацию текста. После согласования
-контрактов узлы расследования будут размещены в `agent/nodes`, а оркестрация —
-в `application`. MCP Streamable HTTP Client и возможный MCP Server относятся к
-отдельным протокольным границам и не являются маршрутами внутреннего FastAPI API.
+Граф расследования принимает типизированный `ActionDecision` или
+`FinishDecision` через внедряемый `DecisionProvider`. Перед вызовом
+`ToolExecutor` он проверяет имя, схему аргументов и scope, затем сохраняет
+короткое наблюдение и снова запрашивает решение. Например:
+`ingest → decide(search_logs) → validate_action → execute → normalize(ok)
+→ decide(finish) → ready_for_finalization`. Это **офлайн-цикл с fake-портами**;
+он не переводит расследование в `completed` и не формирует RCA. `inconclusive`
+используется при невалидных решениях, повторе или достижении лимита шагов.
+`InvestigationState.context` и `budget` соответствуют моделям AI-03;
+`observations` — внутреннее состояние, а `evidence` пока пустое до AI-07.
+Текстовый JSON из Qwen не интерпретируется как действие. Одноузловой LLM probe
+по-прежнему только генерирует текст. Подробности — в
+[отчёте AI-04](docs/tasks/AI-04_RESULT.md).
+
+MCP Streamable HTTP Client и возможный MCP Server относятся к отдельным
+протокольным границам и не являются маршрутами внутреннего FastAPI API.
 PostgreSQL checkpoints и схема хранения пока не реализованы.
 
 Открытые решения: REST или gRPC между Main Backend и AI Backend, владелец MCP

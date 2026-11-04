@@ -7,7 +7,21 @@ def to_graph_state(request: StartAIRequest) -> InvestigationState:
     context = InvestigationContext.model_validate(
         request.model_dump(exclude={"schema_version"})
     )
-    return {"investigation_id": str(request.investigation_id), "context": context}
+    return {
+        "investigation_id": str(request.investigation_id),
+        "context": context,
+        "budget": context.budget,
+        "step": 0,
+        "tool_calls_count": 0,
+        "action_history": [],
+        "observations": [],
+        "evidence": [],
+        "event_summaries": [],
+        "pending_action": None,
+        "validated_action": None,
+        "terminal_status": None,
+        "terminal_reason": None,
+    }
 
 
 def start_from_graph_state(state: InvestigationState) -> StartAIRequest:

@@ -36,4 +36,4 @@ Use selective document reading for subsequent tasks; do **not** dump the entire 
 - Use the project's actual conventions unless they conflict with agreed requirements; ask for an architectural decision rather than invent a new service, transport or persistence owner.
 
 ## Source precedence
-**Latest confirmed team decision** > canonical `docs/contracts/` v0.2 > current AI handoff docs > historical project documents under `docs/references/legacy_specs/`. The legacy specs are kept for background only and wrongly prescribe RabbitMQ for AI communications. See `docs/04_DECISIONS_AND_CONFLICTS.md`.
+**Latest confirmed team decision** > canonical `docs/contracts/` v0.2 > current AI handoff docs. Earlier project specifications wrongly prescribe RabbitMQ for AI communications. See `docs/04_DECISIONS_AND_CONFLICTS.md`.

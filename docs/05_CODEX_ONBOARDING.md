@@ -27,8 +27,8 @@ git status --short
 - MCP Client: `docs/contracts/06_MCP_CONTRACTS.md` + `docs/contracts/mcp/tool-catalog.json`.
 - Agent loop: `docs/02_AI_SCOPE_AND_ARCHITECTURE.md` + `docs/03_AI_DELIVERY_PLAN.md`.
 - Progress events / result delivery: `docs/contracts/05_INTERNAL_BACKEND_AI.md` + JSON schemas / examples.
-- Что увидит Frontend: `docs/references/frontend_ui/04_LIVE_INVESTIGATIONS.md`, `10_INCIDENT_DETAIL.md` + `docs/contracts/04_FRONTEND_API_AND_WS.md`.
-- Дополнительные бизнес-требования: `docs/references/legacy_specs/00_PROJECT_OVERVIEW.md`, но **игнорируй его устаревшую схему RabbitMQ**.
+- Что увидит Frontend: `docs/contracts/04_FRONTEND_API_AND_WS.md`.
+- Дополнительный контекст продукта: `docs/01_PROJECT_BRIEF.md`.
 
 ## 5. Поддерживать актуальность
 

@@ -11,7 +11,7 @@ from ai_agent.application.contracts import StartAIRequest
 from ai_agent.application.mappers import to_graph_state
 
 EXAMPLE = (
-    Path(__file__).resolve().parents[2]
+    Path(__file__).resolve().parents[3]
     / "docs/contracts/examples/ai-start.request.json"
 )
 

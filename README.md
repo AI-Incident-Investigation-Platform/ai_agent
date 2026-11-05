@@ -77,7 +77,7 @@ uv run pytest tests/unit/test_mcp_client.py tests/integration/test_mcp_streamabl
 
 ```sh
 uv run python scripts/smoke_llm.py
-AI_AGENT_RUN_LIVE_LLM=1 uv run pytest tests/integration/test_llm_live.py -q
+AI_AGENT_RUN_LIVE_LLM=1 uv run pytest tests/integration/llm/test_llm_live.py -q
 ```
 
 Скрипт сначала проверяет `/v1/models`, затем отправляет описание тестового
@@ -119,9 +119,14 @@ src/ai_agent/
   llm/providers/llama_cpp.py  Асинхронный HTTP-адаптер llama.cpp
   llm/tool_calling.py         Проверка native tool calls по схемам
   mcp/client.py               Streamable HTTP клиент и typed tool results
-tests/unit/                  Тесты настроек, графа и адаптера с fake/mock
-tests/contract/              Проверка DTO по JSON Schema и примерам v0.2-draft
-tests/integration/           Проверка /health и отдельный live-тест LLM
+tests/unit/agent/            Переходы и ограничения агентного графа
+tests/unit/application/      Преобразование DTO в состояние графа
+tests/unit/domain/           Правила жизненного цикла расследования
+tests/unit/llm/              LLM-адаптер и проверка tool calls
+tests/unit/core/             Настройки и логирование
+tests/contract/              Проверка DTO по схемам и доменным инвариантам
+tests/integration/api/       Проверка HTTP /health
+tests/integration/llm/       Отдельный live-тест LLM
 scripts/smoke_llm.py          Явная проверка модели через LangGraph
 scripts/smoke_tool_calling.py Проверка native tool calling на fake tools
 ```

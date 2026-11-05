@@ -10,7 +10,7 @@ from ai_agent.llm.tool_calling import validate_tool_calls
 from ai_agent.llm.types import ChatCompletion, ChatMessage, ToolCall
 
 probe_once = runpy.run_path(
-    str(Path(__file__).resolve().parents[2] / "scripts/smoke_tool_calling.py")
+    str(Path(__file__).resolve().parents[3] / "scripts/smoke_tool_calling.py")
 )["probe_once"]
 
 

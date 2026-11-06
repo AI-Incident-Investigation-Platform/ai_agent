@@ -23,7 +23,7 @@ from ai_agent.mcp.client import (
     connect_mcp,
 )
 
-CATALOG = Path(__file__).resolve().parents[2] / "docs/contracts/mcp/tool-catalog.json"
+CATALOG = Path(__file__).resolve().parents[3] / "docs/contracts/mcp/tool-catalog.json"
 PAYLOAD = {
     "status": "ok",
     "summary": "fake result",

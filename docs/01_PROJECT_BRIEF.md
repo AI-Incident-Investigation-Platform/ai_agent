@@ -41,4 +41,4 @@ AI Incident Investigator — платформа для автономного **
 Figma / `02 — B / Product screens`: https://www.figma.com/design/JFUcynM2y9vIq6vJ7efTOc?node-id=6-2
 
 ## Дополнительные источники
-`contracts/README.md` — подробное описание общего проекта, `contracts/01_ARCHITECTURE.md` — обновлённая архитектура, `references/legacy_specs/00_PROJECT_OVERVIEW.md` — исходный полный контекст **с устаревшим transport section**.
+`contracts/00_README.md` — подробное описание пакета контрактов, `contracts/01_ARCHITECTURE.md` — обновлённая архитектура.

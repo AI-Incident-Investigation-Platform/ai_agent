@@ -29,9 +29,9 @@
 For **complete** decisions table consult `contracts/10_OPEN_DECISIONS.md` and readiness audit `contracts/13_BACKEND_READINESS_AUDIT.md`. If an answer requires deciding one of these, **ask the owning teammate** or produce a clearly-labeled proposal/ADR — never silently codify a guess.
 
 ## Explicit supersessions
-1. `references/legacy_specs/00_PROJECT_OVERVIEW.md`, `02_AI_REPOSITORY.md` and Backend/Infra counterparts mention a RabbitMQ consumer, `investigation.requested` exchange, acknowledgement and queue orchestration. **All of that is superseded FOR MAIN BACKEND ↔ AI**. Do not implement those old instructions.
+1. Earlier project specifications mention a RabbitMQ consumer, `investigation.requested` exchange, acknowledgement and queue orchestration. **All of that is superseded FOR MAIN BACKEND ↔ AI**. Do not implement those old instructions.
 2. Earlier AI spec states MCP Server is strictly Backend-owned. **Location/owner has since become undecided**. Current `contracts/06_MCP_CONTRACTS.md` is authoritative about interface, not final owner.
-3. `references/legacy_specs/` and first UI drafts predate obligatory email OTP. Canonical login behavior is `contracts/12_AUTH_EMAIL_OTP.md`; this belongs to Main Backend/Frontend.
+3. Earlier project specifications and first UI drafts predate obligatory email OTP. Canonical login behavior is `contracts/12_AUTH_EMAIL_OTP.md`; this belongs to Main Backend/Frontend.
 4. Old project spec was authored before current v0.2 contract definitions. If field names differ, canonical JSON Schema/OpenAPI takes priority until v1 sign-off.
 5. Avoid assuming every proposed endpoint and enum in draft v0.2 is already implemented in a repository; Codex must inspect code, then gap-list.
 

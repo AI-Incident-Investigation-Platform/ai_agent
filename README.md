@@ -13,8 +13,7 @@
 [План задач](docs/tasks/README.md) задаёт порядок дальнейшей разработки и
 интеграционные барьеры G01–G03. В [пакете контрактов](docs/contracts/00_README.md)
 находятся черновые JSON Schema, варианты OpenAPI и gRPC, каталог MCP-инструментов
-и примеры. [Старые спецификации](docs/references/README.md) сохранены для
-контекста, но требование RabbitMQ между Main Backend и AI Backend отменено.
+и примеры. Требование RabbitMQ между Main Backend и AI Backend отменено.
 Инструкции для работы с репозиторием — в [AGENTS.md](AGENTS.md).
 
 ## Локальный запуск

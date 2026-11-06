@@ -63,7 +63,7 @@ MCP SDK. `discover()` сверяет имена tools с read-only MVP-ката�
 Локальная проверка без реальных диагностических источников:
 
 ```sh
-uv run pytest tests/unit/test_mcp_client.py tests/integration/test_mcp_streamable_http.py -q
+uv run pytest tests/unit/mcp/test_mcp_client.py tests/integration/mcp/test_mcp_streamable_http.py -q
 ```
 
 Интеграционный тест поднимает временный MCP Server с fake tools. Подробности —
@@ -118,14 +118,18 @@ src/ai_agent/
   llm/providers/llama_cpp.py  Асинхронный HTTP-адаптер llama.cpp
   llm/tool_calling.py         Проверка native tool calls по схемам
   mcp/client.py               Streamable HTTP клиент и typed tool results
+  mcp/safe_tools.py           Проверка scope и безопасная нормализация первых tools
 tests/unit/agent/            Переходы и ограничения агентного графа
 tests/unit/application/      Преобразование DTO в состояние графа
 tests/unit/domain/           Правила жизненного цикла расследования
 tests/unit/llm/              LLM-адаптер и проверка tool calls
+tests/unit/mcp/              MCP transport и проверки инструментов
 tests/unit/core/             Настройки и логирование
 tests/contract/              Проверка DTO по схемам и доменным инвариантам
 tests/integration/api/       Проверка HTTP /health
 tests/integration/llm/       Отдельный live-тест LLM
+tests/integration/mcp/       Локальный тест MCP Streamable HTTP
+tests/integration/agent/     Связь графа и безопасного исполнителя
 scripts/smoke_llm.py          Явная проверка модели через LangGraph
 scripts/smoke_tool_calling.py Проверка native tool calling на fake tools
 ```
@@ -149,8 +153,16 @@ scripts/smoke_tool_calling.py Проверка native tool calling на fake too
 [отчёте AI-04](docs/tasks/AI-04_RESULT.md).
 
 MCP Client реализован как отдельная транспортная граница и пока не подключён
-к графу расследования. Размещение продуктового MCP Server остаётся открытым
+к графу расследования в runtime. Размещение продуктового MCP Server остаётся открытым
 решением и не является маршрутом внутреннего FastAPI API.
+
+AI-06 добавляет `SafeToolExecutor` для первых четырёх read-only инструментов:
+`get_incident_context`, `search_logs`, `query_prometheus`, `get_trace`.
+Он проверяет scope и аргументы до MCP-вызова, ограничивает и очищает ответ.
+Остальные имена пока отклоняются; Prometheus поддерживает только простой
+селектор с точными метками проекта и окружения. Fake integration test проверяет,
+что граф получает статус и настоящие source refs без сырого текста результата.
+Подробности — в [отчёте AI-06](docs/tasks/AI-06_RESULT.md).
 PostgreSQL checkpoints и схема хранения пока не реализованы.
 
 Открытые решения: REST или gRPC между Main Backend и AI Backend, владелец MCP

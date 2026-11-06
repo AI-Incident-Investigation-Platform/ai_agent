@@ -102,7 +102,12 @@ def build_graph(
                     mode="json", by_alias=True
                 )
                 context = state["context"]
-                if "project_id" not in args or str(args["project_id"]) != str(
+                if action.name == "get_incident_context":
+                    if str(args.get("incident_id")) != str(context.incident_id) or str(
+                        args.get("investigation_id")
+                    ) != str(context.investigation_id):
+                        raise ValueError("Incident outside investigation scope")
+                elif "project_id" not in args or str(args["project_id"]) != str(
                     context.project_id
                 ):
                     raise ValueError("Project outside investigation scope")

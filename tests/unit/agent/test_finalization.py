@@ -5,6 +5,7 @@ from pathlib import Path
 from uuid import UUID
 
 from jsonschema import Draft202012Validator, FormatChecker
+from langgraph.checkpoint.memory import InMemorySaver
 
 from ai_agent.agent.finalization import build_finalization_graph, finalize_investigation
 from ai_agent.application.contracts import StartAIRequest
@@ -264,3 +265,51 @@ def test_finalization_graph_returns_callback_and_is_deterministic():
     first = finalize(current, FakeLLM(proposal(evidence_id)))
     second = finalize(current, FakeLLM(proposal(evidence_id)))
     assert first == second
+
+
+def test_cancel_wins_before_callback_and_replay_preserves_terminal_result():
+    current = state(supported=True)
+    canceled = False
+
+    class CancelOnReply:
+        async def chat(self, messages, *, tools=None):
+            nonlocal canceled
+            canceled = True
+            return ChatCompletion(
+                content=proposal(
+                    current["evidence"][0]["id"], current["hypotheses"][0]["id"]
+                )
+            )
+
+    async def invoke():
+        saver = InMemorySaver()
+        config = {"configurable": {"thread_id": current["investigation_id"]}}
+        graph = build_finalization_graph(
+            CancelOnReply(),
+            finished_at=NOW,
+            is_cancel_requested=lambda _: canceled,
+            checkpointer=saver,
+        )
+        output = await graph.ainvoke(current, config)
+        assert output["result_callback"]["status"] == "canceled"
+        assert output["result_callback"]["report"] is None
+        assert len(output["result_callback"]["evidence"]) == 1
+        model = FakeLLM()
+        replay = await build_finalization_graph(model, checkpointer=saver).ainvoke(
+            {"investigation_id": current["investigation_id"]}, config
+        )
+        assert not model.calls
+        assert replay["result_callback"] == output["result_callback"]
+
+    asyncio.run(invoke())
+
+
+def test_finalization_uses_deadline_from_investigation():
+    current = state(supported=True)
+    current["deadline_at"] = 100
+    model = FakeLLM()
+    result = asyncio.run(finalize_investigation(current, model, clock=lambda: 100))
+    assert result.status == "timed_out"
+    assert result.report is None
+    assert len(result.evidence) == 1
+    assert not model.calls

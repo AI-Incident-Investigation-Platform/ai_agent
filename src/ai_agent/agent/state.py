@@ -17,6 +17,7 @@ class InvestigationState(TypedDict):
     investigation_id: str
     context: NotRequired[InvestigationContext]
     budget: NotRequired[ExecutionBudget]
+    deadline_at: NotRequired[float]
     step: NotRequired[int]
     tool_calls_count: NotRequired[int]
     action_history: NotRequired[list[str]]

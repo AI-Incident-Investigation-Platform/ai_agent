@@ -1,12 +1,17 @@
+import asyncio
 import json
 import re
+from collections.abc import Callable
 from datetime import UTC, datetime
+from time import time
 from uuid import NAMESPACE_URL, UUID, uuid5
 
+from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from ai_agent.agent.evidence import safe_source_refs
+from ai_agent.agent.execution import ExecutionControl, RunStopped
 from ai_agent.agent.state import InvestigationState
 from ai_agent.application.contracts import AIResultCallback
 from ai_agent.domain.models import Evidence, Hypothesis, RCAReport, TimelineEntry
@@ -153,7 +158,11 @@ def _parse_proposal(
 
 
 async def _generate_proposal(
-    provider: ChatProvider, evidence: list[Evidence], hypotheses: list[Hypothesis]
+    provider: ChatProvider,
+    evidence: list[Evidence],
+    hypotheses: list[Hypothesis],
+    state: InvestigationState,
+    control: ExecutionControl,
 ) -> _Proposal | None:
     catalog = {
         "evidence": [
@@ -186,10 +195,17 @@ async def _generate_proposal(
     ]
     for attempt in range(2):
         try:
-            response = await provider.chat(messages)
+            async with control.bounded(state):
+                if attempt:
+                    await asyncio.sleep(0.05)
+                    control.check(state)
+                response = await provider.chat(messages)
+            control.check(state)
             if response.tool_calls or not response.content:
                 raise ValueError("Expected a JSON text response")
             return _parse_proposal(response.content, evidence, hypotheses)
+        except RunStopped:
+            raise
         except Exception:
             if attempt == 0:
                 messages.append(
@@ -241,11 +257,23 @@ async def finalize_investigation(
     provider: ChatProvider,
     *,
     finished_at: datetime | None = None,
+    is_cancel_requested: Callable[[str], bool] | None = None,
+    clock: Callable[[], float] = time,
 ) -> AIResultCallback:
     context = state["context"]
     if str(context.investigation_id) != state["investigation_id"]:
         raise ValueError("Graph state has no matching investigation context")
-    finished_at = finished_at or datetime.now(UTC)
+    if "result_callback" in state:
+        result = AIResultCallback.model_validate(state["result_callback"])
+        if (result.investigation_id, result.incident_id) != (
+            context.investigation_id,
+            context.incident_id,
+        ):
+            raise ValueError("Result is outside investigation scope")
+        return result
+    if "deadline_at" not in state:
+        state = {**state, "deadline_at": clock() + context.budget.timeout_seconds}
+    control = ExecutionControl(is_cancel_requested, clock)
     evidence = _verified_evidence(state)
     hypotheses = _verified_hypotheses(state, evidence)
     timeline = _timeline(state, evidence)
@@ -259,8 +287,17 @@ async def finalize_investigation(
     }:
         raise ValueError("Investigation is not ready for finalization")
     proposal = None
-    if evidence and terminal in {"ready_for_finalization", "inconclusive"}:
-        proposal = await _generate_proposal(provider, evidence, hypotheses)
+    if terminal in {"ready_for_finalization", "inconclusive"}:
+        try:
+            control.check(state)
+            if evidence:
+                proposal = await _generate_proposal(
+                    provider, evidence, hypotheses, state, control
+                )
+            control.check(state)
+        except RunStopped as exc:
+            terminal = exc.status
+    finished_at = finished_at or datetime.now(UTC)
     selected = (
         [item for item in evidence if item.id in proposal.symptom_evidence_ids]
         if proposal
@@ -332,14 +369,25 @@ async def finalize_investigation(
 
 
 def build_finalization_graph(
-    provider: ChatProvider, *, finished_at: datetime | None = None
+    provider: ChatProvider,
+    *,
+    finished_at: datetime | None = None,
+    is_cancel_requested: Callable[[str], bool] | None = None,
+    clock: Callable[[], float] = time,
+    checkpointer: BaseCheckpointSaver | None = None,
 ):
     async def finalize(state: InvestigationState) -> dict[str, object]:
-        result = await finalize_investigation(state, provider, finished_at=finished_at)
+        result = await finalize_investigation(
+            state,
+            provider,
+            finished_at=finished_at,
+            is_cancel_requested=is_cancel_requested,
+            clock=clock,
+        )
         return {"result_callback": result.model_dump(mode="json")}
 
     graph = StateGraph(InvestigationState)
     graph.add_node("finalize", finalize)
     graph.add_edge(START, "finalize")
     graph.add_edge("finalize", END)
-    return graph.compile()
+    return graph.compile(checkpointer=checkpointer)

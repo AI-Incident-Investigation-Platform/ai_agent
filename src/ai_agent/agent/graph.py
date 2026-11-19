@@ -1,8 +1,11 @@
+import asyncio
 import json
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import UTC, datetime
+from time import time
 from typing import Annotated
 
+from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, Field, TypeAdapter, ValidationError
 
@@ -18,9 +21,10 @@ from ai_agent.agent.evidence import (
     safe_source_refs,
     update_hypotheses,
 )
+from ai_agent.agent.execution import ExecutionControl, RunStopped
 from ai_agent.agent.state import InvestigationState, LLMProbeState
-from ai_agent.domain.models import InvestigationContext
-from ai_agent.llm.errors import LLMResponseError
+from ai_agent.domain.models import ExecutionBudget, InvestigationContext
+from ai_agent.llm.errors import LLMError, LLMResponseError
 from ai_agent.llm.types import ChatMessage, ChatProvider
 
 _DECISION = TypeAdapter(
@@ -32,7 +36,13 @@ def build_graph(
     decision_provider: DecisionProvider,
     tool_executor: ToolExecutor,
     tool_schemas: Mapping[str, type[BaseModel]],
+    *,
+    is_cancel_requested: Callable[[str], bool] | None = None,
+    clock: Callable[[], float] = time,
+    budget_cap: ExecutionBudget | None = None,
+    checkpointer: BaseCheckpointSaver | None = None,
 ):
+    control = ExecutionControl(is_cancel_requested, clock)
 
     async def ingest(state: InvestigationState) -> dict[str, object]:
         context = state.get("context")
@@ -41,8 +51,19 @@ def build_graph(
             or str(context.investigation_id) != state["investigation_id"]
         ):
             raise ValueError("Graph state has no matching investigation context")
+        if state.get("terminal_status"):
+            return {}
+        limits = context.budget.model_dump()
+        if budget_cap is not None:
+            limits = {
+                key: min(value, getattr(budget_cap, key))
+                for key, value in limits.items()
+            }
+        budget = ExecutionBudget.model_validate(limits)
+        deadline = clock() + budget.timeout_seconds
         return {
-            "budget": context.budget,
+            "budget": budget,
+            "deadline_at": min(deadline, state.get("deadline_at", deadline)),
             "step": state.get("step", 0),
             "tool_calls_count": state.get("tool_calls_count", 0),
             "action_history": state.get("action_history", []),
@@ -51,10 +72,13 @@ def build_graph(
             "hypotheses": state.get("hypotheses", []),
             "hypothesis_relations": state.get("hypothesis_relations", {}),
             "event_summaries": state.get("event_summaries", []),
-            "terminal_status": state.get("terminal_status"),
         }
 
     async def decide(state: InvestigationState) -> dict[str, object]:
+        try:
+            control.check(state)
+        except RunStopped as exc:
+            return exc.state_update()
         if state["step"] >= state["budget"].max_steps:
             return {
                 "terminal_status": "inconclusive",
@@ -63,12 +87,19 @@ def build_graph(
             }
         for attempt in range(2):
             try:
-                raw = await decision_provider.decide(state)
+                async with control.bounded(state):
+                    if attempt:
+                        await asyncio.sleep(0.05)
+                        control.check(state)
+                    raw = await decision_provider.decide(state)
+                control.check(state)
                 if not isinstance(raw, (ActionDecision, FinishDecision)):
                     raise ValueError("Decision must be a typed action or finish")
                 decision = _DECISION.validate_python(raw)
                 break
-            except Exception:
+            except RunStopped as exc:
+                return {**exc.state_update(), "step": state["step"] + 1}
+            except LLMResponseError, ValueError, TypeError:
                 if attempt == 1:
                     return {
                         "step": state["step"] + 1,
@@ -79,6 +110,18 @@ def build_graph(
                             "Decision validation failed",
                         ],
                     }
+            except LLMError, TimeoutError:
+                return {
+                    "step": state["step"] + 1,
+                    "terminal_status": "failed",
+                    "terminal_reason": "model_unavailable",
+                }
+            except Exception:
+                return {
+                    "step": state["step"] + 1,
+                    "terminal_status": "failed",
+                    "terminal_reason": "decision_error",
+                }
         if isinstance(decision, FinishDecision):
             try:
                 hypotheses, relations = update_hypotheses(
@@ -131,6 +174,10 @@ def build_graph(
         }
 
     async def validate_action(state: InvestigationState) -> dict[str, object]:
+        try:
+            control.check(state)
+        except RunStopped as exc:
+            return exc.state_update()
         action = ActionDecision.model_validate(state["pending_action"])
         schema = tool_schemas.get(action.name)
         if schema is None or schema.model_config.get("extra") != "forbid":
@@ -182,8 +229,15 @@ def build_graph(
 
     async def execute(state: InvestigationState) -> dict[str, object]:
         action = state["validated_action"]
+        count = state["tool_calls_count"]
         try:
-            result = await tool_executor.execute(action["name"], action["arguments"])
+            async with control.bounded(state):
+                count += 1
+                result = await tool_executor.execute(
+                    action["name"], action["arguments"]
+                )
+        except RunStopped as exc:
+            return {**exc.state_update(), "tool_calls_count": count}
         except Exception:
             result = {
                 "status": "error",
@@ -205,7 +259,7 @@ def build_graph(
         except ValidationError, ValueError, TypeError:
             evidence = state["evidence"]
         return {
-            "tool_calls_count": state["tool_calls_count"] + 1,
+            "tool_calls_count": count,
             "pending_action": {**action, "observation": observation},
             "evidence": evidence,
         }
@@ -273,9 +327,13 @@ def build_graph(
         "validate_action",
         lambda state: END if state.get("terminal_status") else "execute",
     )
-    graph.add_edge("execute", "normalize")
+    graph.add_conditional_edges(
+        "execute", lambda state: END if state.get("terminal_status") else "normalize"
+    )
     graph.add_edge("normalize", "decide")
-    return graph.compile().with_config({"recursion_limit": 160})
+    return graph.compile(checkpointer=checkpointer).with_config(
+        {"recursion_limit": 160}
+    )
 
 
 def build_llm_probe_graph(provider: ChatProvider):

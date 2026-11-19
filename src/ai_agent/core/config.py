@@ -1,4 +1,4 @@
-from pydantic import AnyHttpUrl, Field, SecretStr
+from pydantic import AnyHttpUrl, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -17,3 +17,15 @@ class Settings(BaseSettings):
     mcp_connect_timeout_seconds: float = Field(default=10, gt=0, le=60)
     mcp_call_timeout_seconds: float = Field(default=30, gt=0, le=300)
     mcp_max_result_bytes: int = Field(default=262144, ge=1024, le=1048576)
+
+    checkpoint_dsn: SecretStr | None = None
+    checkpoint_schema: str | None = Field(
+        default=None, pattern=r"^[a-z][a-z0-9_]{0,62}$"
+    )
+
+    @field_validator("checkpoint_schema")
+    @classmethod
+    def require_private_checkpoint_schema(cls, value: str | None) -> str | None:
+        if value is not None and (value == "public" or value.startswith("pg_")):
+            raise ValueError("A dedicated checkpoint schema is required")
+        return value

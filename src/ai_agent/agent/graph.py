@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from time import time
 from typing import Annotated
 
+from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, Field, TypeAdapter, ValidationError
@@ -44,13 +45,19 @@ def build_graph(
 ):
     control = ExecutionControl(is_cancel_requested, clock)
 
-    async def ingest(state: InvestigationState) -> dict[str, object]:
+    async def ingest(
+        state: InvestigationState, config: RunnableConfig
+    ) -> dict[str, object]:
         context = state.get("context")
         if (
             context is None
             or str(context.investigation_id) != state["investigation_id"]
         ):
             raise ValueError("Graph state has no matching investigation context")
+        if checkpointer is not None and config.get("configurable", {}).get(
+            "thread_id"
+        ) != str(context.investigation_id):
+            raise ValueError("Checkpoint thread must match the investigation ID")
         if state.get("terminal_status"):
             return {}
         limits = context.budget.model_dump()

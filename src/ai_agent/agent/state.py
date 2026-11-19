@@ -28,9 +28,13 @@ class InvestigationState(TypedDict):
     pending_action: NotRequired[dict[str, object] | None]
     validated_action: NotRequired[dict[str, object] | None]
     terminal_status: NotRequired[
-        Literal["ready_for_finalization", "inconclusive"] | None
+        Literal[
+            "ready_for_finalization", "inconclusive", "failed", "timed_out", "canceled"
+        ]
+        | None
     ]
     terminal_reason: NotRequired[str | None]
+    result_callback: NotRequired[dict[str, object]]
 
 
 class LLMProbeState(TypedDict):

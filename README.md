@@ -109,6 +109,7 @@ src/ai_agent/
   agent/state.py              Состояния графов и наблюдений
   agent/decisions.py          Типизированные решения и порты fake-адаптеров
   agent/graph.py              Управляемый цикл расследования и LLM probe
+  agent/finalization.py       Проверка Evidence и сборка итогового RCA
   domain/models.py            Типы расследования, Evidence, Hypothesis и RCA
   domain/lifecycle.py         Допустимые переходы статусов и правило Retry
   application/contracts.py    DTO для v0.2-draft без выбора REST/gRPC
@@ -168,6 +169,12 @@ AI-06 добавляет `SafeToolExecutor` для первых четырёх r
 Подробности — в [отчёте AI-06](docs/tasks/AI-06_RESULT.md).
 Связь Evidence и гипотез проверяется локальным fake MCP тестом; живые источники
 и реальная Qwen в этот путь пока не подключены.
+
+AI-08 добавляет отдельный узел финализации. Он формирует draft `AIResultCallback`,
+сортирует timeline по подтверждённым отметкам времени и ограничивает разбор
+структурированного ответа модели двумя попытками. Для текущих гипотез AI-07
+итог остаётся `inconclusive`: статус `completed` возможен только для
+подтверждённой гипотезы с проверенными Evidence и без противоречий.
 PostgreSQL checkpoints и схема хранения пока не реализованы.
 
 Открытые решения: REST или gRPC между Main Backend и AI Backend, владелец MCP

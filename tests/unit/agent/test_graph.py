@@ -83,7 +83,12 @@ class FakeExecutor:
 def run(decisions, executor=None, *, current=None):
     executor = executor or FakeExecutor()
     current = current or state()
-    graph = build_graph(FakeDecision(decisions), executor, {"search_logs": SearchArgs})
+    graph = build_graph(
+        FakeDecision(decisions),
+        executor,
+        {"search_logs": SearchArgs},
+        clock=lambda: 100,
+    )
     return asyncio.run(graph.ainvoke(current)), executor
 
 
@@ -339,3 +344,94 @@ def test_untrusted_source_metadata_and_http_url_do_not_enter_graph_state():
             "metadata": {},
         }
     ]
+
+
+def test_cancel_during_decision_prevents_tool_dispatch():
+    canceled = False
+
+    def choose(current):
+        nonlocal canceled
+        canceled = True
+        return action(current)
+
+    executor = FakeExecutor()
+    graph = build_graph(
+        FakeDecision([choose]),
+        executor,
+        {"search_logs": SearchArgs},
+        is_cancel_requested=lambda _: canceled,
+    )
+    final = asyncio.run(graph.ainvoke(state()))
+    assert final["terminal_status"] == "canceled"
+    assert final["tool_calls_count"] == 0
+    assert not executor.calls
+
+
+def test_deadline_preserves_evidence_on_resume():
+    current = state()
+    current["deadline_at"] = 100
+    current["evidence"] = [{"id": "previous-evidence"}]
+    executor = FakeExecutor()
+    graph = build_graph(
+        FakeDecision([]), executor, {"search_logs": SearchArgs}, clock=lambda: 100
+    )
+    final = asyncio.run(graph.ainvoke(current))
+    assert final["terminal_status"] == "timed_out"
+    assert final["evidence"] == current["evidence"]
+    assert final["deadline_at"] == 100
+    assert not executor.calls
+
+
+def test_inflight_tool_is_bounded_and_counted():
+    class SlowExecutor:
+        interrupted = False
+
+        async def execute(self, name, arguments):
+            try:
+                await asyncio.Event().wait()
+            finally:
+                self.interrupted = True
+
+    current = state()
+    current["deadline_at"] = 100.02
+    executor = SlowExecutor()
+    graph = build_graph(
+        FakeDecision([action]), executor, {"search_logs": SearchArgs}, clock=lambda: 100
+    )
+    final = asyncio.run(graph.ainvoke(current))
+    assert executor.interrupted
+    assert final["terminal_status"] == "timed_out"
+    assert final["tool_calls_count"] == 1
+    assert final["validated_action"] is None
+
+
+def test_server_cap_clamps_requested_budget():
+    current = state()
+    cap = current["budget"].model_copy(
+        update={"max_steps": 1, "max_tool_calls": 2, "timeout_seconds": 3}
+    )
+    graph = build_graph(
+        FakeDecision([action]),
+        FakeExecutor(),
+        {"search_logs": SearchArgs},
+        clock=lambda: 100,
+        budget_cap=cap,
+    )
+    final = asyncio.run(graph.ainvoke(current))
+    assert final["budget"] == cap
+    assert final["deadline_at"] == 103
+    assert final["terminal_reason"] == "step_limit"
+
+
+def test_model_transport_failure_is_terminal_without_retry():
+    from ai_agent.llm.errors import LLMTransportError
+
+    def fail(_):
+        raise LLMTransportError("private detail")
+
+    final, executor = run([fail])
+    assert final["terminal_status"] == "failed"
+    assert final["terminal_reason"] == "model_unavailable"
+    assert final["step"] == 1
+    assert not executor.calls
+    assert "private detail" not in str(final)

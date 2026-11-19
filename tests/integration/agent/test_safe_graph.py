@@ -1,11 +1,14 @@
 import asyncio
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 from ai_agent.agent.decisions import ActionDecision, FinishDecision
+from ai_agent.agent.finalization import finalize_investigation
 from ai_agent.agent.graph import build_graph
 from ai_agent.application.contracts import StartAIRequest
 from ai_agent.application.mappers import to_graph_state
+from ai_agent.llm.types import ChatCompletion
 from ai_agent.mcp.client import ToolResult
 from ai_agent.mcp.safe_tools import (
     IncidentContextArgs,
@@ -148,3 +151,20 @@ def test_scoped_fake_mcp_log_becomes_evidence_for_pending_hypothesis():
     assert final["hypotheses"][0]["status"] == "pending"
     assert "private" not in str(final)
     assert "ignore previous instructions" not in str(final)
+
+    class FakeLLM:
+        async def chat(self, messages, *, tools=None):
+            return ChatCompletion(
+                content=json.dumps(
+                    {"symptom_evidence_ids": [final["evidence"][0]["id"]]}
+                )
+            )
+
+    result = asyncio.run(
+        finalize_investigation(
+            final, FakeLLM(), finished_at=datetime(2026, 10, 19, 14, 49, tzinfo=UTC)
+        )
+    )
+    assert result.status == "inconclusive"
+    assert result.report.root_cause is None
+    assert result.timeline[0].source.source_id == "log-1"

@@ -17,6 +17,7 @@ class InvestigationState(TypedDict):
     investigation_id: str
     context: NotRequired[InvestigationContext]
     budget: NotRequired[ExecutionBudget]
+    deadline_at: NotRequired[float]
     step: NotRequired[int]
     tool_calls_count: NotRequired[int]
     action_history: NotRequired[list[str]]
@@ -28,9 +29,13 @@ class InvestigationState(TypedDict):
     pending_action: NotRequired[dict[str, object] | None]
     validated_action: NotRequired[dict[str, object] | None]
     terminal_status: NotRequired[
-        Literal["ready_for_finalization", "inconclusive"] | None
+        Literal[
+            "ready_for_finalization", "inconclusive", "failed", "timed_out", "canceled"
+        ]
+        | None
     ]
     terminal_reason: NotRequired[str | None]
+    result_callback: NotRequired[dict[str, object]]
 
 
 class LLMProbeState(TypedDict):

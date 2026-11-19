@@ -1,6 +1,7 @@
 import asyncio
 import json
 from pathlib import Path
+from uuid import UUID
 
 import pytest
 
@@ -205,3 +206,68 @@ def test_native_mcp_error_becomes_source_error():
     assert result["status"] == "error"
     assert result["error"]["code"] == "source_unavailable"
     assert len(calls) == 1
+
+
+def test_foreign_source_metadata_is_rejected_before_it_is_removed():
+    scope = context()
+    payload = ToolResult.model_validate(
+        {
+            "status": "ok",
+            "summary": "two refs",
+            "source_refs": [
+                {
+                    "source_type": "tempo",
+                    "source_id": "foreign",
+                    "metadata": {
+                        "environment_id": "ffffffff-ffff-4fff-8fff-ffffffffffff"
+                    },
+                },
+                {
+                    "source_type": "tempo",
+                    "source_id": "local",
+                    "metadata": {"environment_id": str(scope.environment_id)},
+                },
+            ],
+            "items": [],
+            "truncated": False,
+            "error": None,
+        }
+    )
+    result, _ = run("get_trace", {**base_args(), "trace_id": "trace-123"}, payload)
+    assert [ref["source_id"] for ref in result["source_refs"]] == ["local"]
+    assert result["source_refs"][0]["metadata"] == {}
+
+
+def test_source_for_another_allowed_service_is_not_attributed_to_requested_service():
+    scope = context()
+    other = "99999999-9999-4999-8999-999999999999"
+    scope = scope.model_copy(update={"service_ids": [*scope.service_ids, UUID(other)]})
+    payload = ToolResult.model_validate(
+        {
+            "status": "ok",
+            "summary": "one ref",
+            "source_refs": [
+                {
+                    "source_type": "elasticsearch",
+                    "source_id": "other-log",
+                    "metadata": {"service_id": other},
+                }
+            ],
+            "items": [],
+            "truncated": False,
+            "error": None,
+        }
+    )
+    args = {
+        "project_id": str(scope.project_id),
+        "environment_id": str(scope.environment_id),
+        "service_ids": [str(scope.service_ids[0])],
+        "from": scope.window.from_.isoformat(),
+        "to": scope.window.to.isoformat(),
+        "query": "timeout",
+        "limit": 10,
+    }
+    result = asyncio.run(
+        SafeToolExecutor(scope, FakeTransport(payload)).execute("search_logs", args)
+    )
+    assert result["source_refs"] == []

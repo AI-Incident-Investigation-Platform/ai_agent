@@ -178,6 +178,22 @@ class SafeToolExecutor:
         for source in result.source_refs[:100]:
             if not _valid_url(source.url):
                 continue
+            if any(
+                key in source.metadata and str(source.metadata[key]) != str(expected)
+                for key, expected in (
+                    ("project_id", context.project_id),
+                    ("environment_id", context.environment_id),
+                    ("incident_id", context.incident_id),
+                    ("investigation_id", context.investigation_id),
+                )
+            ):
+                continue
+            if "service_id" in source.metadata:
+                allowed_services = data.get("service_ids") or [
+                    str(item) for item in context.service_ids
+                ]
+                if str(source.metadata["service_id"]) not in allowed_services:
+                    continue
             if source.source_id is None and source.url is None:
                 continue
             if _SECRET.search(str(source.source_id)) or _EMAIL.search(

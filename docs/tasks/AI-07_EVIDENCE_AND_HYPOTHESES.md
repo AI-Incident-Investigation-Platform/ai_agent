@@ -14,7 +14,7 @@
 
 1. Evidence хранит источник, service/project/environment scope, time window, locator/url/ID, excerpt, redaction/truncation flags, source_refs.
 2. Стабильный ID для evidence; дедуп однотипных observation с сохранением source provenance.
-3. Hypothesis status/confidence/evidence_for/evidence_against согласно draft domain schemas; hard max 3.
+3. Hypothesis status/confidence/evidence_ids согласно draft domain schemas; направление `for`/`against` хранить только во внутреннем состоянии, без изменения wire-формата; hard max 3.
 4. Проверять, что ссылка на Evidence действительно присутствует в run, разрешена для данного scope и подтверждает вывод только в заявленных пределах.
 5. Степень уверенности — модельное предположение, не статистическая гарантия; если недостаточно фактов — `inconclusive` или pending.
 6. Внутреннее обновление graph state должно быть атомарно с точки зрения одного шага; пропуск/неполный tool result не скрывать.
@@ -46,3 +46,20 @@ Unit: empty data→inconclusive, conflicting evidence, duplicate source ref, fak
 - Сначала реальная проверка предпосылок и краткий план, затем малые изменения с unit/contract tests.
 - Не выполнять push/merge автоматически, не утверждать несуществующий API v1, не отчитываться о mock как о live.
 - Закрыть Story только после выполнения DoD и отчёта с командами и результатами.
+
+## Результат реализации
+
+В ветке `feature/ai-07-evidence` граф сохраняет Evidence только при наличии
+совпадающего locator, scoped action и записи в допустимом окне времени. ID
+стабилен для одного источника и расследования; повтор не создаёт дубль.
+Невалидные ссылки и чужой scope не становятся Evidence. Сырые тексты источников
+не попадают в graph state. Для `partial`/`truncated` сохраняется ограничение
+уверенности. Гипотез не больше трёх, их связи с Evidence проверяются в обе
+стороны; направление `for`/`against` остаётся внутренним. Поскольку
+семантическое подтверждение причины ещё не реализовано, гипотезы имеют статус
+`pending` и уверенность `low`, даже если модель предлагает большее значение.
+При отсутствии проверенного Evidence граф завершает цикл как `inconclusive`.
+
+Проверка: unit, contract round-trip по v0.2-draft и интеграция графа с fake
+MCP. Живые диагностические источники, полноценное содержание excerpt и RCA
+остаются за пределами этой реализации.

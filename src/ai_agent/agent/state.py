@@ -22,6 +22,8 @@ class InvestigationState(TypedDict):
     action_history: NotRequired[list[str]]
     observations: NotRequired[list[Observation]]
     evidence: NotRequired[list[dict[str, object]]]
+    hypotheses: NotRequired[list[dict[str, object]]]
+    hypothesis_relations: NotRequired[dict[str, dict[str, list[str]]]]
     event_summaries: NotRequired[list[str]]
     pending_action: NotRequired[dict[str, object] | None]
     validated_action: NotRequired[dict[str, object] | None]

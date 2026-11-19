@@ -1,5 +1,6 @@
 import json
 from collections.abc import Mapping
+from datetime import UTC, datetime
 from typing import Annotated
 
 from langgraph.graph import END, START, StateGraph
@@ -11,8 +12,14 @@ from ai_agent.agent.decisions import (
     FinishDecision,
     ToolExecutor,
 )
+from ai_agent.agent.evidence import (
+    collect_evidence,
+    link_evidence,
+    safe_source_refs,
+    update_hypotheses,
+)
 from ai_agent.agent.state import InvestigationState, LLMProbeState
-from ai_agent.domain.models import SourceLink
+from ai_agent.domain.models import InvestigationContext
 from ai_agent.llm.errors import LLMResponseError
 from ai_agent.llm.types import ChatMessage, ChatProvider
 
@@ -41,6 +48,8 @@ def build_graph(
             "action_history": state.get("action_history", []),
             "observations": state.get("observations", []),
             "evidence": state.get("evidence", []),
+            "hypotheses": state.get("hypotheses", []),
+            "hypothesis_relations": state.get("hypothesis_relations", {}),
             "event_summaries": state.get("event_summaries", []),
             "terminal_status": state.get("terminal_status"),
         }
@@ -71,8 +80,40 @@ def build_graph(
                         ],
                     }
         if isinstance(decision, FinishDecision):
+            try:
+                hypotheses, relations = update_hypotheses(
+                    state["context"],
+                    decision.hypotheses,
+                    state["evidence"],
+                    updated_at=datetime.now(UTC),
+                )
+            except ValidationError, ValueError, TypeError:
+                return {
+                    "step": state["step"] + 1,
+                    "terminal_status": "inconclusive",
+                    "terminal_reason": "invalid_hypothesis",
+                    "event_summaries": [
+                        *state["event_summaries"],
+                        "Hypothesis validation failed",
+                    ],
+                }
+            if not state["evidence"]:
+                return {
+                    "step": state["step"] + 1,
+                    "hypotheses": hypotheses,
+                    "hypothesis_relations": relations,
+                    "terminal_status": "inconclusive",
+                    "terminal_reason": "insufficient_evidence",
+                    "event_summaries": [
+                        *state["event_summaries"],
+                        "No verified evidence was collected",
+                    ],
+                }
             return {
                 "step": state["step"] + 1,
+                "evidence": link_evidence(state["evidence"], hypotheses),
+                "hypotheses": hypotheses,
+                "hypothesis_relations": relations,
                 "terminal_status": "ready_for_finalization",
                 "terminal_reason": "agent_finished",
                 "event_summaries": [
@@ -98,9 +139,9 @@ def build_graph(
             reason = "tool_call_limit"
         else:
             try:
-                args = schema.model_validate(action.arguments, strict=True).model_dump(
-                    mode="json", by_alias=True
-                )
+                args = schema.model_validate_json(
+                    json.dumps(action.arguments), strict=True
+                ).model_dump(mode="json", by_alias=True)
                 context = state["context"]
                 if action.name == "get_incident_context":
                     if str(args.get("incident_id")) != str(context.incident_id) or str(
@@ -152,14 +193,25 @@ def build_graph(
                 "truncated": False,
                 "error": {"code": "tool_error", "message": "Tool execution failed"},
             }
-        observation = normalize_result(action, result)
+        observation = normalize_result(action, result, state["context"])
+        try:
+            evidence = collect_evidence(
+                state["context"],
+                action,
+                result if isinstance(result, dict) else {},
+                state["evidence"],
+                collected_at=datetime.now(UTC),
+            )
+        except ValidationError, ValueError, TypeError:
+            evidence = state["evidence"]
         return {
             "tool_calls_count": state["tool_calls_count"] + 1,
             "pending_action": {**action, "observation": observation},
+            "evidence": evidence,
         }
 
     def normalize_result(
-        action: dict[str, object], result: object
+        action: dict[str, object], result: object, context: InvestigationContext
     ) -> dict[str, object]:
         try:
             if not isinstance(result, dict) or result.get("status") not in {
@@ -169,10 +221,7 @@ def build_graph(
                 "error",
             }:
                 raise ValueError("Invalid tool result")
-            refs = [
-                SourceLink.model_validate(ref).model_dump(mode="json")
-                for ref in result["source_refs"]
-            ]
+            refs = safe_source_refs(result["source_refs"], context)
             if not isinstance(result.get("items"), list) or not isinstance(
                 result.get("truncated"), bool
             ):

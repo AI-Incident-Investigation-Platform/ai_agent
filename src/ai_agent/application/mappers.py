@@ -16,6 +16,8 @@ def to_graph_state(request: StartAIRequest) -> InvestigationState:
         "action_history": [],
         "observations": [],
         "evidence": [],
+        "hypotheses": [],
+        "hypothesis_relations": {},
         "event_summaries": [],
         "pending_action": None,
         "validated_action": None,

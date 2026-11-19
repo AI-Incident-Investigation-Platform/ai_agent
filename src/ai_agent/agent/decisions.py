@@ -19,6 +19,7 @@ class FinishDecision(BaseModel):
 
     kind: Literal["finish"]
     reason: str = Field(min_length=1, max_length=500)
+    hypotheses: list[dict[str, object]] = Field(default_factory=list, max_length=3)
 
 
 class DecisionProvider(Protocol):

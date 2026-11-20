@@ -18,6 +18,7 @@ dependencies = [
     "uvicorn",
     "langgraph-checkpoint-postgres>=3.2.1",
     "psycopg[binary]>=3.3.9",
+    "pyjwt[crypto]>=2.15.1",
 ]
 
 [dependency-groups]

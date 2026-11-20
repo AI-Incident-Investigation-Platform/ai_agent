@@ -1,5 +1,3 @@
-"""OpenAI-compatible chat adapter for a local llama.cpp server."""
-
 import asyncio
 import json
 from collections.abc import Sequence

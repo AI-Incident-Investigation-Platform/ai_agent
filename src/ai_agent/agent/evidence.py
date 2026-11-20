@@ -14,10 +14,10 @@ from ai_agent.domain.models import (
 )
 
 _SOURCE_TYPES = {
-    "search_logs": "elasticsearch",
-    "query_prometheus": "prometheus",
-    "get_trace": "tempo",
-    "get_incident_context": "manual",
+    "search_logs": {"elasticsearch", "loki"},
+    "query_prometheus": {"prometheus"},
+    "get_trace": {"tempo"},
+    "get_incident_context": {"manual"},
 }
 _SAFE_ID = re.compile(r"[A-Za-z0-9._:/#-]{1,256}\Z")
 
@@ -192,7 +192,7 @@ def collect_evidence(
             source = SourceLink.model_validate(candidate)
         except ValidationError:
             continue
-        if source.source_type != _SOURCE_TYPES[name] or not _valid_source(
+        if source.source_type not in _SOURCE_TYPES[name] or not _valid_source(
             source, context
         ):
             continue

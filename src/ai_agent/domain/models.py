@@ -62,10 +62,12 @@ class InvestigationContext(ContractModel):
 class SourceLink(ContractModel):
     source_type: Literal[
         "elasticsearch",
+        "loki",
         "prometheus",
         "tempo",
         "github",
         "docker",
+        "kubernetes",
         "deployment",
         "healthcheck",
         "manual",

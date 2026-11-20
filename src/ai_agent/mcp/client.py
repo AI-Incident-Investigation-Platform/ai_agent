@@ -1,5 +1,3 @@
-"""Bounded MCP client facade over the official Streamable HTTP SDK transport."""
-
 import asyncio
 import json
 from collections.abc import AsyncIterator, Mapping
@@ -37,19 +35,19 @@ MVP_TOOLS = frozenset(
 
 
 class MCPClientError(Exception):
-    """MCP transport or protocol failure (distinct from application status=error)."""
+    pass
 
 
 class MCPTimeoutError(MCPClientError):
-    """Connecting, discovery or a tool call exceeded its deadline."""
+    pass
 
 
 class MCPToolError(MCPClientError):
-    """The server returned native MCP isError for a tool call."""
+    pass
 
 
 class MCPProtocolError(MCPClientError):
-    """The server response is missing or does not match the draft result shape."""
+    pass
 
 
 class ToolErrorDetail(BaseModel):
@@ -203,7 +201,6 @@ class MCPToolClient:
 
 @asynccontextmanager
 async def connect_mcp(settings: Settings) -> AsyncIterator[MCPToolClient]:
-    """Open and close a real SDK Streamable HTTP session."""
 
     if settings.mcp_url is None:
         raise ValueError("AI_AGENT_MCP_URL is required")

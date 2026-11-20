@@ -11,6 +11,7 @@ from ai_agent.domain.models import (
     Hypothesis,
     InvestigationContext,
     SourceLink,
+    TimeWindow,
 )
 
 _SOURCE_TYPES = {
@@ -22,18 +23,19 @@ _SOURCE_TYPES = {
 _SAFE_ID = re.compile(r"[A-Za-z0-9._:/#-]{1,256}\Z")
 
 
-def _in_window(value: object, context: InvestigationContext) -> bool:
+def _utc_timestamp(value: object) -> datetime | None:
     if not isinstance(value, str):
-        return False
+        return None
     try:
         stamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
     except ValueError:
-        return False
-    return (
-        stamp.tzinfo is not None
-        and stamp.utcoffset() == timedelta(0)
-        and context.window.from_ <= stamp <= context.window.to
-    )
+        return None
+    return stamp if stamp.utcoffset() == timedelta(0) else None
+
+
+def _in_window(value: object, window: TimeWindow) -> bool:
+    stamp = _utc_timestamp(value)
+    return stamp is not None and window.from_ <= stamp <= window.to
 
 
 def _valid_source(source: SourceLink, context: InvestigationContext) -> bool:
@@ -92,6 +94,7 @@ def _matching_items(
     items: list[object],
     context: InvestigationContext,
     arguments: dict[str, object],
+    window: TimeWindow,
 ) -> list[dict[str, object]]:
     matched = []
     requested = arguments.get("service_ids", [])
@@ -109,13 +112,13 @@ def _matching_items(
             continue
         if name == "search_logs":
             valid = item.get("log_id") == source.source_id and _in_window(
-                item.get("timestamp"), context
+                item.get("timestamp"), window
             )
         elif name == "get_trace":
             valid = (
                 source.source_id == arguments.get("trace_id")
                 and bool(item.get("span_id"))
-                and _in_window(item.get("started_at"), context)
+                and _in_window(item.get("started_at"), window)
             )
         elif name == "query_prometheus":
             labels = item.get("labels")
@@ -127,7 +130,7 @@ def _matching_items(
                 and isinstance(points, list)
                 and bool(points)
                 and all(
-                    isinstance(point, dict) and _in_window(point.get("at"), context)
+                    isinstance(point, dict) and _in_window(point.get("at"), window)
                     for point in points
                 )
             )
@@ -169,15 +172,21 @@ def collect_evidence(
         "environment_id"
     ) != str(context.environment_id):
         return evidence
+    window = context.window
     if name in {"search_logs", "query_prometheus"}:
-        start = arguments.get("from")
-        end = arguments.get("to")
-        if not _in_window(start, context) or not _in_window(end, context):
+        start = _utc_timestamp(arguments.get("from"))
+        end = _utc_timestamp(arguments.get("to"))
+        if (
+            start is None
+            or end is None
+            or not window.from_ <= start <= end <= window.to
+        ):
             return evidence
-        if datetime.fromisoformat(
-            start.replace("Z", "+00:00")
-        ) > datetime.fromisoformat(end.replace("Z", "+00:00")):
-            return evidence
+        window = TimeWindow(from_=start, to=end)
+    if name == "query_prometheus" and (
+        len(result["source_refs"]) != 1 or len(result["items"]) != 1
+    ):
+        return evidence
     requested_services = arguments.get("service_ids", [])
     if not requested_services and "service_id" in arguments:
         requested_services = [arguments["service_id"]]
@@ -202,9 +211,19 @@ def collect_evidence(
             and str(source.metadata["service_id"]) not in requested_services
         ):
             continue
-        matched = _matching_items(name, source, result["items"], context, arguments)
+        matched = _matching_items(
+            name, source, result["items"], context, arguments, window
+        )
         if not matched:
             continue
+        if name == "search_logs":
+            timestamps = {_utc_timestamp(item["timestamp"]) for item in matched}
+            if len(timestamps) != 1:
+                continue
+            timestamp = next(iter(timestamps))
+            if source.observed_at is not None and source.observed_at != timestamp:
+                continue
+            source = source.model_copy(update={"observed_at": timestamp})
         evidence_id = str(
             uuid5(
                 NAMESPACE_URL,

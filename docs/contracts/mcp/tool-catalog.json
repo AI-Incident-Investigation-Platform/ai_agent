@@ -63,10 +63,12 @@
           "type": "string",
           "enum": [
             "elasticsearch",
+            "loki",
             "prometheus",
             "tempo",
             "github",
             "docker",
+            "kubernetes",
             "deployment",
             "healthcheck",
             "manual",
@@ -267,10 +269,12 @@
                 "type": "string",
                 "enum": [
                   "elasticsearch",
+                  "loki",
                   "prometheus",
                   "tempo",
                   "github",
                   "docker",
+                  "kubernetes",
                   "deployment",
                   "healthcheck",
                   "manual",
@@ -321,7 +325,7 @@
     "query_prometheus": {
       "phase": "MVP",
       "source": "Prometheus/Grafana",
-      "purpose": "Выполнение разрешённого PromQL/PromQL range query с ограничениями времени и числа серий",
+      "purpose": "Выполняет серверный шаблон Prometheus по query_id в пределах разрешённых сервисов",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -332,10 +336,6 @@
           "environment_id": {
             "type": "string",
             "format": "uuid"
-          },
-          "query": {
-            "type": "string",
-            "maxLength": 1800
           },
           "from": {
             "type": "string",
@@ -356,16 +356,39 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 50
+          },
+          "query_id": {
+            "type": "string",
+            "enum": [
+              "http_5xx_rate",
+              "http_p95_latency",
+              "http_request_rate",
+              "db_pool_checked_out",
+              "db_pool_timeouts",
+              "pod_restarts",
+              "service_up"
+            ],
+            "description": "Server-side allowlisted PromQL template only; unmapped metrics return controlled error"
+          },
+          "service_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "minItems": 1,
+            "maxItems": 20
           }
         },
         "required": [
           "project_id",
           "environment_id",
-          "query",
+          "query_id",
           "from",
           "to",
           "step_seconds",
-          "max_series"
+          "max_series",
+          "service_ids"
         ],
         "additionalProperties": false
       },
@@ -463,10 +486,12 @@
                 "type": "string",
                 "enum": [
                   "elasticsearch",
+                  "loki",
                   "prometheus",
                   "tempo",
                   "github",
                   "docker",
+                  "kubernetes",
                   "deployment",
                   "healthcheck",
                   "manual",
@@ -635,10 +660,12 @@
                 "type": "string",
                 "enum": [
                   "elasticsearch",
+                  "loki",
                   "prometheus",
                   "tempo",
                   "github",
                   "docker",
+                  "kubernetes",
                   "deployment",
                   "healthcheck",
                   "manual",
@@ -805,10 +832,12 @@
                 "type": "string",
                 "enum": [
                   "elasticsearch",
+                  "loki",
                   "prometheus",
                   "tempo",
                   "github",
                   "docker",
+                  "kubernetes",
                   "deployment",
                   "healthcheck",
                   "manual",
@@ -971,10 +1000,12 @@
                 "type": "string",
                 "enum": [
                   "elasticsearch",
+                  "loki",
                   "prometheus",
                   "tempo",
                   "github",
                   "docker",
+                  "kubernetes",
                   "deployment",
                   "healthcheck",
                   "manual",
@@ -1143,10 +1174,12 @@
                 "type": "string",
                 "enum": [
                   "elasticsearch",
+                  "loki",
                   "prometheus",
                   "tempo",
                   "github",
                   "docker",
+                  "kubernetes",
                   "deployment",
                   "healthcheck",
                   "manual",
@@ -1327,10 +1360,12 @@
                 "type": "string",
                 "enum": [
                   "elasticsearch",
+                  "loki",
                   "prometheus",
                   "tempo",
                   "github",
                   "docker",
+                  "kubernetes",
                   "deployment",
                   "healthcheck",
                   "manual",
@@ -1490,10 +1525,12 @@
                 "type": "string",
                 "enum": [
                   "elasticsearch",
+                  "loki",
                   "prometheus",
                   "tempo",
                   "github",
                   "docker",
+                  "kubernetes",
                   "deployment",
                   "healthcheck",
                   "manual",
@@ -1661,10 +1698,12 @@
                 "type": "string",
                 "enum": [
                   "elasticsearch",
+                  "loki",
                   "prometheus",
                   "tempo",
                   "github",
                   "docker",
+                  "kubernetes",
                   "deployment",
                   "healthcheck",
                   "manual",
@@ -1826,10 +1865,12 @@
                 "type": "string",
                 "enum": [
                   "elasticsearch",
+                  "loki",
                   "prometheus",
                   "tempo",
                   "github",
                   "docker",
+                  "kubernetes",
                   "deployment",
                   "healthcheck",
                   "manual",
@@ -1997,10 +2038,12 @@
                 "type": "string",
                 "enum": [
                   "elasticsearch",
+                  "loki",
                   "prometheus",
                   "tempo",
                   "github",
                   "docker",
+                  "kubernetes",
                   "deployment",
                   "healthcheck",
                   "manual",
@@ -2172,10 +2215,12 @@
                 "type": "string",
                 "enum": [
                   "elasticsearch",
+                  "loki",
                   "prometheus",
                   "tempo",
                   "github",
                   "docker",
+                  "kubernetes",
                   "deployment",
                   "healthcheck",
                   "manual",
@@ -2348,10 +2393,12 @@
                 "type": "string",
                 "enum": [
                   "elasticsearch",
+                  "loki",
                   "prometheus",
                   "tempo",
                   "github",
                   "docker",
+                  "kubernetes",
                   "deployment",
                   "healthcheck",
                   "manual",
@@ -2506,10 +2553,12 @@
                 "type": "string",
                 "enum": [
                   "elasticsearch",
+                  "loki",
                   "prometheus",
                   "tempo",
                   "github",
                   "docker",
+                  "kubernetes",
                   "deployment",
                   "healthcheck",
                   "manual",
@@ -2667,10 +2716,12 @@
                 "type": "string",
                 "enum": [
                   "elasticsearch",
+                  "loki",
                   "prometheus",
                   "tempo",
                   "github",
                   "docker",
+                  "kubernetes",
                   "deployment",
                   "healthcheck",
                   "manual",
@@ -2823,10 +2874,12 @@
                 "type": "string",
                 "enum": [
                   "elasticsearch",
+                  "loki",
                   "prometheus",
                   "tempo",
                   "github",
                   "docker",
+                  "kubernetes",
                   "deployment",
                   "healthcheck",
                   "manual",

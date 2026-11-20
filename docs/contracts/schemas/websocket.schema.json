@@ -758,10 +758,12 @@
           "type": "string",
           "enum": [
             "elasticsearch",
+            "loki",
             "prometheus",
             "tempo",
             "github",
             "docker",
+            "kubernetes",
             "deployment",
             "healthcheck",
             "manual",

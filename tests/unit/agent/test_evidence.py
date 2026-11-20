@@ -292,3 +292,43 @@ def test_generated_evidence_and_hypothesis_match_draft_domain_schema():
         Draft202012Validator(
             {**schema, "$ref": f"#/$defs/{name}"}, format_checker=FormatChecker()
         ).validate(value)
+
+
+def test_log_must_be_inside_tool_window_even_if_inside_investigation():
+    ctx = context()
+    requested = action(ctx)
+    requested["arguments"]["to"] = "2026-10-19T14:30:00Z"
+    assert collect_evidence(ctx, requested, result(), [], collected_at=NOW) == []
+
+
+def test_log_timestamp_fills_missing_observed_at_and_rejects_conflicts():
+    ctx = context()
+    payload = result()
+    payload["source_refs"][0].pop("observed_at")
+    collected = collect_evidence(ctx, action(ctx), payload, [], collected_at=NOW)
+    assert collected[0]["source"]["observed_at"] == payload["items"][0]["timestamp"]
+    payload["source_refs"][0]["observed_at"] = "2026-10-19T14:34:00Z"
+    assert collect_evidence(ctx, action(ctx), payload, [], collected_at=NOW) == []
+
+
+def test_metric_with_multiple_source_refs_cannot_prove_a_series_link():
+    ctx = context()
+    requested = action(ctx)
+    requested["name"] = "query_prometheus"
+    payload = {
+        "status": "ok",
+        "source_refs": [
+            {"source_type": "prometheus", "source_id": "series-1"},
+            {"source_type": "prometheus", "source_id": "series-2"},
+        ],
+        "items": [
+            {
+                "labels": {
+                    "project_id": str(ctx.project_id),
+                    "environment_id": str(ctx.environment_id),
+                },
+                "points": [{"at": "2026-10-19T14:35:08Z", "value": 1}],
+            }
+        ],
+    }
+    assert collect_evidence(ctx, requested, payload, [], collected_at=NOW) == []

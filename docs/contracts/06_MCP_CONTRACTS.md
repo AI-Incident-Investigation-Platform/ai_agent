@@ -8,7 +8,7 @@
 
 | Инструмент | Источник | Что возвращает |
 |---|---|---|
-| `search_logs` | Elasticsearch | структурированные error/log excerpts, Kibana URLs, IDs |
+| `search_logs` | Loki | Структурированные записи, ссылки на источник и ID записи |
 | `query_prometheus` | Prometheus | series, labels, time range, Grafana link |
 | `get_trace` | Tempo | trace/span summary, service relationships, Tempo link |
 | `get_service_health` | Metrics / configured health | service health, error rate, p95 |
@@ -48,8 +48,8 @@
 
 - **Scope обязателен:** `project_id`/`environment_id`, где подходит. MCP Server **не доверяет**, что agent сам выбрал разрешённый scope: авторизует его по `investigation_id` и identity токена.
 - **Не выполнять произвольный SQL**, shell команды, произвольные Docker exec, restart, git write, PR, CI logs/test runners, config change, rollback.
-- **Elasticsearch:** агенту разрешено задавать query в верифицированной форме. Произвольный DSL только через bounded adapter с enforceable allowlist/limits, а не сырая пересылка без проверки.
-- **PromQL:** query parse/validate, project scoping, timeout, max samples/series, запрещён обход namespace/project labels.
+- **Loki:** `query` — текстовый фильтр. Сервер строит ограниченный LogQL с областью проекта, окружения и сервисов.
+- **Prometheus:** агент передаёт `query_id` из каталога и список разрешённых сервисов. Сервер подставляет ограниченный шаблон PromQL.
 - **HTTP health:** только предварительно зарегистрированный `service.health_url`, allowlist DNS/IP and scheme; блокировать private/meta IP SSRF обход (localhost/network metadata), redirects и DNS rebinding по правилам среды.
 - **GitHub:** только allowlisted репозитории проекта; read-only API credential, ограничение файлов и размера diff; secret scanning и redaction.
 - **Docker:** отдельный узкий диагностический read-only adapter; **не выдавать agent container напрямую Docker socket**.
@@ -76,3 +76,5 @@
 ## 6. Typed output schemas
 
 Кроме input schemas каждый из **16 инструментов** в `mcp/tool-catalog.json` теперь содержит **свой `outputSchema`** (специализированный `items`, единый status/summary/source_refs/truncated/error). Их также можно валидировать через `schemas/mcp-results.schema.json`, где находятся `$defs.search_logs_Output` и аналоги. Семантика полей — кандидат до API review с разработчиками источников.
+
+Схемы SourceLink принимают Loki и Kubernetes, а также прежние типы Elasticsearch и Docker для чтения сохранённых результатов. Для связи нескольких рядов Prometheus с отдельными ссылками нужен однозначный идентификатор ряда. Пока такого поля в контракте нет, AI создаёт Evidence, только если ответ содержит один ряд и одну ссылку.

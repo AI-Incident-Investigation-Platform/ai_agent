@@ -193,3 +193,43 @@ def test_draft_schema_allows_mismatched_report_outcome():
     validate_schema(payload, load_json("schemas/ai-result-callback.schema.json"))
     with pytest.raises(ValidationError):
         AIResultCallback.model_validate(payload)
+
+
+def test_mcp_metric_catalog_matches_runtime_template_contract():
+    from ai_agent.mcp.safe_tools import QueryPrometheusArgs
+
+    catalog = load_json("mcp/tool-catalog.json")
+    schema = catalog["tools"]["query_prometheus"]["inputSchema"]
+    runtime = QueryPrometheusArgs.model_json_schema()
+    assert set(schema["required"]) == set(runtime["required"])
+    assert (
+        schema["properties"]["query_id"]["enum"]
+        == (runtime["properties"]["query_id"]["enum"])
+    )
+    start = load_json("examples/ai-start.request.json")
+    payload = {
+        "project_id": start["project_id"],
+        "environment_id": start["environment_id"],
+        "service_ids": start["service_ids"],
+        **start["window"],
+        "query_id": "http_5xx_rate",
+        "step_seconds": 60,
+        "max_series": 5,
+    }
+    validate_schema(payload, schema)
+    assert QueryPrometheusArgs.model_validate(payload).query_id == "http_5xx_rate"
+    raw_query = {**payload, "query": "up"}
+    with pytest.raises(SchemaValidationError):
+        validate_schema(raw_query, schema)
+    with pytest.raises(ValidationError):
+        QueryPrometheusArgs.model_validate(raw_query)
+
+
+@pytest.mark.parametrize("source_type", ["loki", "kubernetes", "elasticsearch"])
+def test_result_schema_accepts_current_and_existing_evidence_sources(source_type):
+    payload = load_json("examples/ai-result.callback.json")
+    payload["evidence"][0]["source"]["source_type"] = source_type
+    validate_schema(payload, load_json("schemas/ai-result-callback.schema.json"))
+    assert AIResultCallback.model_validate(payload).evidence[0].source.source_type == (
+        source_type
+    )

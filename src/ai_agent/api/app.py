@@ -5,6 +5,7 @@ from uuid import uuid4
 from fastapi import FastAPI, Request
 
 from ai_agent.api.routes.health import router as health_router
+from ai_agent.api.routes.investigations import Authorize, build_router
 from ai_agent.core.config import Settings
 from ai_agent.core.logging import configure_logging, request_id
 
@@ -12,12 +13,15 @@ logger = logging.getLogger("ai_agent.api")
 _REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None, *, authorize: Authorize | None = None
+) -> FastAPI:
     settings = settings or Settings()
     configure_logging(settings.log_level)
     app = FastAPI(title="AI Incident Investigator AI Backend")
     app.state.settings = settings
     app.include_router(health_router)
+    app.include_router(build_router(settings, authorize))
 
     @app.middleware("http")
     async def correlate_request(request: Request, call_next):

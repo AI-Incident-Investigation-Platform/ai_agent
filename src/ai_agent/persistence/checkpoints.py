@@ -21,7 +21,7 @@ def investigation_checkpoint_config(investigation_id: UUID) -> RunnableConfig:
 
 
 @asynccontextmanager
-async def connect_checkpointer(settings: Settings) -> AsyncIterator[AsyncPostgresSaver]:
+async def connect_storage(settings: Settings) -> AsyncIterator[AsyncConnection]:
     if settings.checkpoint_dsn is None or settings.checkpoint_schema is None:
         raise CheckpointStorageError(
             "Checkpoint database and schema must be configured"
@@ -48,15 +48,21 @@ async def connect_checkpointer(settings: Settings) -> AsyncIterator[AsyncPostgre
             if row is None or not row["available"]:
                 raise CheckpointStorageError("Checkpoint schema is unavailable")
 
-            serde = JsonPlusSerializer(
-                allowed_msgpack_modules=[
-                    (model.__module__, model.__name__)
-                    for model in (InvestigationContext, ExecutionBudget, TimeWindow)
-                ]
-            )
-            yield AsyncPostgresSaver(conn, serde=serde)
+            yield conn
     except Error:
         raise CheckpointStorageError("Checkpoint database operation failed") from None
+
+
+@asynccontextmanager
+async def connect_checkpointer(settings: Settings) -> AsyncIterator[AsyncPostgresSaver]:
+    async with connect_storage(settings) as conn:
+        serde = JsonPlusSerializer(
+            allowed_msgpack_modules=[
+                (model.__module__, model.__name__)
+                for model in (InvestigationContext, ExecutionBudget, TimeWindow)
+            ]
+        )
+        yield AsyncPostgresSaver(conn, serde=serde)
 
 
 async def migrate_checkpoints(settings: Settings) -> None:

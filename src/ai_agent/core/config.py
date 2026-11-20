@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     mcp_call_timeout_seconds: float = Field(default=30, gt=0, le=300)
     mcp_max_result_bytes: int = Field(default=262144, ge=1024, le=1048576)
 
+    auth_url: AnyHttpUrl | None = None
+    auth_client_secret: SecretStr | None = None
+    incidents_url: AnyHttpUrl | None = None
+
     checkpoint_dsn: SecretStr | None = None
     checkpoint_schema: str | None = Field(
         default=None, pattern=r"^[a-z][a-z0-9_]{0,62}$"

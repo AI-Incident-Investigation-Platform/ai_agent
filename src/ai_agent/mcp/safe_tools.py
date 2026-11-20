@@ -2,7 +2,7 @@ import json
 import re
 from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Protocol
+from typing import Literal, Protocol
 from urllib.parse import urlsplit
 from uuid import UUID
 
@@ -13,7 +13,7 @@ from ai_agent.mcp.client import MCPClientError, ToolResult
 
 
 class ToolRejected(ValueError):
-    """The requested tool or its arguments are outside the allowed scope."""
+    pass
 
 
 class _Args(BaseModel):
@@ -39,7 +39,16 @@ class SearchLogsArgs(_Args):
 class QueryPrometheusArgs(_Args):
     project_id: str
     environment_id: str
-    query: str = Field(min_length=1, max_length=1800)
+    service_ids: list[str] = Field(min_length=1, max_length=20)
+    query_id: Literal[
+        "http_5xx_rate",
+        "http_p95_latency",
+        "http_request_rate",
+        "db_pool_checked_out",
+        "db_pool_timeouts",
+        "pod_restarts",
+        "service_up",
+    ]
     from_: datetime = Field(alias="from")
     to: datetime
     step_seconds: int = Field(ge=10, le=3600, strict=True)
@@ -63,7 +72,6 @@ _SECRET = re.compile(
     r"(?i)(bearer\s+\S+|(?:password|token|api[_-]?key|secret)\s*[=:]\s*\S+)"
 )
 _EMAIL = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
-_PROM_SELECTOR = re.compile(r"^[a-zA-Z_:][a-zA-Z0-9_:]*\{([^{}]+)\}$")
 
 
 class ToolTransport(Protocol):
@@ -142,22 +150,6 @@ class SafeToolExecutor:
                     or end > context.window.to
                 ):
                     raise ToolRejected("Time window is outside investigation scope")
-            if name == "query_prometheus":
-                selector = _PROM_SELECTOR.fullmatch(data["query"])
-                if selector is None:
-                    raise ToolRejected("Only scoped metric selectors are supported")
-                labels = {}
-                for part in selector.group(1).split(","):
-                    matcher = re.fullmatch(
-                        r'\s*([A-Za-z_]\w*)="([A-Za-z0-9_-]+)"\s*', part
-                    )
-                    if matcher is None or matcher.group(1) in labels:
-                        raise ToolRejected("Invalid metric selector labels")
-                    labels[matcher.group(1)] = matcher.group(2)
-                if labels.get("project_id") != str(context.project_id) or labels.get(
-                    "environment_id"
-                ) != str(context.environment_id):
-                    raise ToolRejected("Metric selector lacks exact scope labels")
         except (ValidationError, ValueError, TypeError) as exc:
             raise ToolRejected("Invalid or out-of-scope tool arguments") from exc
         try:

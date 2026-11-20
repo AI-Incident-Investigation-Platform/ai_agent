@@ -130,26 +130,26 @@ def test_logs_time_service_and_limit():
         assert transport.calls == []
 
 
-def test_prometheus_only_accepts_exact_scoped_selector():
+def test_prometheus_requires_allowlisted_query_and_scoped_services():
     scope = context()
     args = {
         **base_args(),
-        "query": (
-            f'http_requests{{project_id="{scope.project_id}",'
-            f'environment_id="{scope.environment_id}"}}'
-        ),
+        "query_id": "http_5xx_rate",
+        "service_ids": [str(scope.service_ids[0])],
         "from": scope.window.from_.isoformat(),
         "to": scope.window.to.isoformat(),
         "step_seconds": 60,
         "max_series": 5,
     }
     assert len(run("query_prometheus", args)[1]) == 1
-    for query in (
-        "up or vector(1)",
-        f'x{{other_project_id="{scope.project_id}",environment_id="{scope.environment_id}"}}',
+    for invalid in (
+        {"query_id": "unknown"},
+        {"query": "up or vector(1)"},
+        {"service_ids": []},
+        {"service_ids": ["ffffffff-ffff-4fff-8fff-ffffffffffff"]},
     ):
         with pytest.raises(ToolRejected):
-            run("query_prometheus", {**args, "query": query})
+            run("query_prometheus", {**args, **invalid})
 
 
 def test_untrusted_result_is_bounded_redacted_and_keeps_real_refs():

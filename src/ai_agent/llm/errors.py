@@ -1,13 +1,13 @@
 class LLMError(Exception):
-    """A local inference request failed."""
+    pass
 
 
 class LLMTimeoutError(LLMError):
-    """The local inference request exceeded its deadline."""
+    pass
 
 
 class LLMTransportError(LLMError):
-    """The local inference server could not be reached."""
+    pass
 
 
 class LLMHTTPError(LLMError):
@@ -17,4 +17,4 @@ class LLMHTTPError(LLMError):
 
 
 class LLMResponseError(LLMError):
-    """The local inference response is malformed, empty, or truncated."""
+    pass
